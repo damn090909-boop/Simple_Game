@@ -1,0 +1,506 @@
+# Role Definition
+너는 시니어 게임 엔진 아키텍트이자 풀스택 개발자다.
+우리는 **'iOS/iPadOS Chrome 브라우저'**에서 '홈 화면에 추가(PWA)'하여 구동하는 4인 가족 전용 게임 'Family Town'을 개발한다.
+
+# Project Constraints
+1. **Target:** iOS Chrome PWA (Standalone).
+   - *Strict:* Safari WebKit 엔진 특성을 고려하여 `overscroll` 및 `touch-action`을 완벽히 제어할 것.
+2. **Tech Stack:** PixiJS v7+ (Render), Firebase v9 Modular (Auth/DB).
+3. **Graphic Standard:** 48px Grid Tile, Skeletal Animation (Cutout), Pixel Art (Nearest Scale).
+
+# Module Specifications (Implementation Guide)
+
+## 1. Auth System (src/auth.js) - *PIN Only Login*
+- **UX Flow:** 앱 실행 시 어떤 버튼도 없이 **오직 '숫자 키패드(0~9)'와 '입력창'만 중앙에 노출**된다.
+- **Logic:**
+  - 사용자가 4자리 PIN 입력 완료 시, 즉시 DB의 `users` 노드를 검색한다.
+  - 해당 PIN과 매칭되는 유저(예: dad)가 있으면 자동 로그인 처리 후 'Lobby'로 화면을 전환한다.
+  - *Constraint:* 별도의 '확인' 버튼이나 '유저 선택' 버튼은 존재하지 않는다.
+
+## 2. Lobby & Character System (src/lobby.js)
+- **Data Structure:** `users/{USER_ID}/characters` (List, Max 3).
+- **UI Layout (Card List):**
+  - 로그인 성공 시 3개의 세로형 카드 슬롯을 표시한다.
+  - **[Case A: 캐릭터 있음]** 좌측: 캐릭터 미리보기(Skeletal), 우측: 정보, 하단: [접속][삭제] 버튼.
+  - **[Case B: 비어있음]** 캐릭터 형태의 '검은색 실루엣' 이미지 표시, 실루엣 정중앙에 [+] 버튼 배치.
+- **Action:** [+] 버튼 클릭 시 **'Character Creator Modal'**을 띄운다.
+
+## 3. Customization System (src/customizer.js)
+- **Features:** 다음 속성을 설정하여 JSON 데이터로 저장한다.
+  - **Body:** 체형 선택 (Sprite 교체).
+  - **Hair:** 헤어 스타일 (Head Bone의 Sprite 교체).
+  - **Color:** 피부색 및 머리색 (PixiJS `tint` 속성 적용).
+  - **Face:** 눈/코/입 스타일 (Sprite 교체).
+
+## 4. In-Game Engine (src/engine.js)
+- **Viewport:** `TILE_SIZE = 48px`. 모바일 화면 꽉 채움(Resize 대응).
+- **Render Mode:** `PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST` (필수).
+- **Skeletal Renderer:**
+  - 저장된 커스텀 데이터(JSON)를 로드하여 `Pixi.Container` 계층 구조로 조립한다.
+  - Hierarchy: Root > Shadow, Body > Head, Arm_L, Arm_R, Leg_L, Leg_R.
+- **Procedural Animation:**
+  - 별도 스프라이트 시트 없이, `ticker` 루프에서 코드로 각 Bone(Container)의 `rotation`을 제어하여 걷는 동작을 구현한다.
+
+## 5. Network & Sync (src/network.js)
+- **Protocol:** Firebase Realtime DB.
+- **Sync Logic:**
+  - 내 이동: 100ms Throttle 적용하여 좌표 전송.
+  - 타인 이동: `onValue` 수신 후, 현재 위치에서 목표 위치로 **선형 보간(Lerp)**하여 부드럽게 이동.
+- **Presence:** `onDisconnect`를 활용하여 앱 종료 시 즉시 오프라인 처리.
+
+## 6. iOS Chrome PWA Optimization (index.html/style.css)
+- **Meta Tags:** `<meta name="apple-mobile-web-app-capable" content="yes">` 포함 필수.
+- **Safety:** `user-select: none`, `touch-action: none`, `overscroll-behavior: none`을 `body`에 적용하여 iOS 특유의 바운스/새로고침/블록잡기 현상을 원천 차단.
+
+# Task
+위 명세를 준수하여 **즉시 실행 가능한 MVP 코드**를 작성하라.
+작성할 파일:
+1. `index.html` (PWA Meta, Intro/Lobby/Popup UI HTML)
+2. `style.css` (iOS Reset, Card UI, Modal Style)
+3. `src/config.js` (Firebase Key 설정)
+4. `src/auth.js` (PIN Logic)
+5. `src/lobby.js` (Slot rendering)
+6. `src/game.js` (PixiJS App, Skeletal Assembly, Network Sync)
+
+
+
+
+
+
+1. [치명적] PIN 기반 유저 탐색의 보안 및 구조 문제
+명세 내용: "PIN 입력 시 DB의 users 노드를 검색하여 매칭되는 유저를 찾는다."
+
+현실적인 문제:
+
+Firebase Realtime Database는 SQL처럼 SELECT * FROM users WHERE pin = 1234 쿼리가 자유롭지 않습니다.
+
+클라이언트에서 PIN을 비교하려면, 앱이 켜지자마자 users 전체 데이터를 다운로드 받아야 합니다.
+
+위험: 브라우저 콘솔을 열 줄 아는 사람이 있다면 다른 가족의 PIN 번호를 볼 수도 있습니다. (가족용이라 무시할 수도 있지만, 기술적으로는 취약점입니다.)
+
+해결책:
+
+데이터가 적으므로(4명), AI가 "전체 유저 목록을 로드해서 자바스크립트 find()로 비교해"라고 코드를 짤 확률이 높습니다. 가족용 앱 범위에서는 '허용' 하되, DB 규칙(Rules)에서 .indexOn: ["pin"] 설정을 추가해야 효율적입니다.
+
+2. [구현 난이도] 스켈레탈 'Tint(색조)' 적용의 함정
+명세 내용: "피부색 및 머리색 (PixiJS tint 속성 적용)"
+
+현실적인 문제:
+
+tint는 단순히 색을 칠하는 게 아니라 '곱하기(Multiply)' 연산입니다.
+
+만약 원본 이미지(헤어, 몸통)가 **유색(예: 노란색, 살색)**으로 그려져 있다면, 틴트를 적용했을 때 색이 섞여서 똥색이나 칙칙한 색이 나옵니다.
+
+해결책 (중요):
+
+모든 파츠(머리, 몸통 등)의 원본 이미지는 반드시 '흰색(White)' 또는 '회색조(Grayscale)'로 제작되어야 합니다. 그래야 코드로 빨간색을 입혔을 때 선명한 빨간색이 나옵니다. 이 내용을 에셋 준비 시 꼭 지켜야 합니다.
+
+3. [플랫폼 제약] iOS PWA의 오디오 정책 (Audio Context)
+명세 내용: (오디오 관련 명시 없음, 하지만 게임이므로 소리가 날 가능성 있음)
+
+현실적인 문제:
+
+iOS는 '사용자의 명시적인 터치' 없이는 소리를 재생할 수 없습니다.
+
+앱 진입 후 코드로 BGM을 자동 재생하려 하면 실패합니다.
+
+해결책:
+
+PIN 입력 화면의 '숫자 키패드'를 누르는 순간이 '사용자 터치'로 간주됩니다.
+
+AI에게 **"첫 번째 PIN 입력 터치 시 AudioContext를 resume 하라"**는 지시가 숨겨져 있어야 나중에 소리가 안 나는 참사를 막을 수 있습니다.
+
+4. [렌더링] 캐릭터 간의 앞뒤 순서 (Z-Index / Depth Sorting)
+명세 내용: (48px 타일맵 위 렌더링)
+
+현실적인 문제:
+
+2D 게임에서 캐릭터 A가 캐릭터 B보다 '아래쪽(Y좌표가 큼)'에 있으면, A가 B를 가려야(앞에 있어야) 합니다.
+
+이 로직(Depth Sorting)이 없으면, 내 캐릭터가 아빠 캐릭터 머리를 밟고 지나가는 기괴한 렌더링이 발생합니다.
+
+해결책:
+
+engine.js의 게임 루프(ticker) 안에 **"매 프레임마다 캐릭터들의 Y좌표를 기준으로 렌더링 순서(zIndex)를 재정렬하라"**는 로직이 반드시 포함되어야 합니다.
+
+
+
+
+
+# Additional Assets & Config Info
+1. **Asset Naming:** - Load images from `assets/` folder.
+   - Naming convention: `body_basic.png`, `head_{n}.png`, `arm_basic.png`, `leg_basic.png`, `shadow.png`, `tile_grass.png`, `tile_water.png`.
+2. **Map Data:** - For MVP, use a hardcoded 2D Array (`const map = [[0,0...], ...]`) in `game.js`. (0: Grass, 1: Water/Collision).
+3. **Z-Index Sorting:**
+   - In the game loop, strictly sort children by `y` coordinate to handle depth correctly (so characters don't walk on heads).
+
+
+
+
+   # Functional Requirements (Critical Add-ons)
+
+## 6. Resource Management (src/loader.js)
+- **Preloader:**
+  - 앱 실행(Intro) 즉시 `PIXI.Assets`를 사용하여 모든 게임 에셋(Tiles, Skeletal Parts)을 비동기 로드한다.
+  - 로딩이 완료되기 전까지는 'Loading...' 텍스트나 심플한 게이지 바를 띄우고, 완료(`Promise` resolve) 후에만 PIN 입력 화면을 노출한다.
+
+## 7. Physics & Interaction (src/engine.js additions)
+- **Collision System:**
+  - 맵 데이터(`const mapData = [[0,0,1...], ...]`)에서 값이 `1`인 타일은 '이동 불가(Block)'로 처리한다.
+  - 캐릭터 이동 시, 목표 좌표가 Block 타일인지 매 프레임 검사하여 이동을 막는다.
+- **Depth Sorting (Z-Index):**
+  - 매 프레임(`ticker`)마다 `WorldContainer` 내부의 모든 객체(캐릭터, 나무 등)를 `y` 좌표 기준으로 오름차순 정렬(`sort`)하여, 아래에 있는 캐릭터가 위에 있는 물체를 가리도록 한다.
+
+## 8. Chat System (src/ui.js & src/network.js)
+- **UI:** 게임 화면 하단에 투명한 'Chat Input' 버튼을 배치한다. 클릭 시 모바일 키보드 호출.
+- **Rendering:**
+  - 메시지 전송 시, 해당 캐릭터(Local/Remote)의 머리 위 20px 지점에 '말풍선(Rounded Rect + Text)'을 렌더링한다.
+  - 말풍선은 5초 후 자동으로 `fade out` 및 소멸(destroy)된다.
+- **Sync:** 채팅 데이터도 `users/{ID}/chat` 노드를 통해 실시간 동기화한다.
+
+
+
+
+## 9. Input & Movement System (src/input.js & src/pathfinder.js)
+- **Input Mode:** **Tap-to-Move (Point & Click)** 방식 채택.
+- **Interaction Logic:**
+  - 사용자가 화면(Canvas)을 터치하면, 해당 좌표를 48px 그리드 좌표(col, row)로 변환한다.
+  - **Visual Feedback:** 터치한 지점에 '타겟 마커(X 표시나 원)'가 0.5초간 애니메이션으로 표시되어야 한다.
+- **Pathfinding (A* Algorithm):**
+  - 터치한 타일이 `Block(1)`이 아닌 경우, 현재 위치에서 목표 타일가지의 최단 경로를 계산한다.
+  - **Algorithm:** 간단한 **A* (A-Star)** 알고리즘을 구현하여 `[[x1,y1], [x2,y2]...]` 형태의 경로 배열을 반환한다.
+  - 캐릭터는 이 경로 배열을 따라 순차적으로 타일 단위로 이동(Move)한다.
+- **Movement Smoothing:**
+  - 타일 간 이동 시 `Lerp`를 사용하여 끊김 없이 부드럽게 좌표를 갱신한다.
+  - 이동 중에는 캐릭터의 `state`를 'walk'로 변경하고, 이동 방향(좌/우)에 따라 스프라이트를 반전(Mirroring)시킨다.
+
+
+
+
+
+  # Role Definition
+너는 시니어 게임 엔진 아키텍트이자 풀스택 개발자다.
+우리는 **'iOS/iPadOS Chrome 브라우저'**에서 '홈 화면에 추가(PWA)'하여 구동하는 4인 가족 전용 게임 'Family Town'을 개발한다.
+
+# Project Constraints
+1. **Target:** iOS Chrome PWA (Standalone).
+   - *Strict:* Safari WebKit 엔진 특성을 고려하여 `overscroll` 및 `touch-action`을 완벽히 제어할 것.
+2. **Tech Stack:** PixiJS v7+ (Render), Firebase v9 Modular (Auth/DB).
+3. **Graphic Standard:** 48px Grid Tile, Skeletal Animation (Cutout), Pixel Art (Nearest Scale).
+
+# 1. Asset & Config Strategy
+- **Asset Naming:** Load images from `assets/` folder.
+   - Naming convention: `body_basic.png`, `head_{n}.png`, `arm_basic.png`, `leg_basic.png`, `shadow.png`, `tile_grass.png`, `tile_water.png`.
+   - *Important:* All sprites must be Grayscale/White to allow `tint` coloring.
+- **Map Data:** Use a hardcoded 2D Array in `game.js` for MVP (0: Grass, 1: Water/Collision).
+
+# 2. Module Specifications (Implementation Guide)
+
+## A. Resource Management (src/loader.js)
+- **Preloader:** 앱 실행 즉시 `PIXI.Assets`로 모든 에셋을 로드하며, 완료 전까지 'Loading...'을 표시한다. 로딩 완료 후에만 Auth 화면으로 진입한다.
+
+## B. Auth System (src/auth.js) - *PIN Only*
+- **UX:** 버튼 없이 **오직 '숫자 키패드(0~9)'와 '입력창'만** 중앙에 노출.
+- **Logic:** 4자리 PIN 입력 완료 시 DB의 `users`를 검색하여 매칭되는 유저(예: dad)로 자동 로그인 및 로비 이동.
+
+## C. Lobby & Customization (src/lobby.js)
+- **Card List:** 3개의 캐릭터 슬롯 표시. (캐릭터 있으면 정보 표시, 없으면 검은 실루엣 & [+] 버튼).
+- **Customization:** [+] 클릭 시 팝업에서 Body, Hair(Bone 교체), Skin/Hair Color(Tint), Face 설정 후 저장.
+
+## D. In-Game Engine (src/engine.js)
+- **Viewport:** Mobile Fullscreen.
+- **Render Mode:** `PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST` (필수).
+- **Skeletal Renderer:** 저장된 JSON 데이터로 머리/몸통/팔/다리 파츠를 `Pixi.Container` 계층 구조로 조립.
+- **Depth Sorting:** 매 프레임(`ticker`) y좌표 기준으로 렌더링 순서(z-index) 정렬.
+
+## E. Camera & Zoom System (src/camera.js) - *Specific Requirement*
+- **Base Size:** Tile Size 48px (Scale 1.0).
+- **Zoom Logic:**
+  - 화면 **우측 상단**에 [ 🔍 ] 토글 버튼 배치.
+  - 클릭 시 **'기본(48px)' ↔ '확대(64px)'** 두 단계로만 전환. (Scale Factor: 1.0 <-> 1.333).
+  - **Centering:** 줌 전환 시 화면의 중심점이 흔들리지 않고, **반드시 내 캐릭터(Local Player)가 화면 정중앙에 유지**되도록 `WorldContainer`의 x, y 좌표를 보정해야 한다.
+
+## F. Input & Movement (src/input.js)
+- **Mode:** **Tap-to-Move**.
+- **Pathfinding:** 터치한 타일이 `Block(1)`이 아니면 A* 알고리즘으로 경로를 계산하여 이동.
+- **Visual:** 터치 지점에 타겟 마커 표시.
+
+## G. Network & Chat (src/network.js)
+- **Sync:** 내 이동(100ms Throttle), 타인 이동(Lerp 보간).
+- **Chat:** 하단 입력창을 통해 메시지 전송 시, 캐릭터 머리 위에 **말풍선** 렌더링 (5초 후 소멸).
+- **Presence:** `onDisconnect`로 오프라인 처리.
+
+## H. iOS Optimization (index.html)
+- **Meta:** `<meta name="apple-mobile-web-app-capable" content="yes">`
+- **CSS:** `body { touch-action: none; overscroll-behavior: none; user-select: none; -webkit-tap-highlight-color: transparent; }`
+
+# Task
+위 명세를 준수하여 **즉시 실행 가능한 MVP 코드**를 작성하라.
+작성할 파일:
+1. `index.html` (PWA Meta, UI HTML)
+2. `style.css` (iOS Reset, Keypad, Card, Zoom Btn, Chat UI)
+3. `src/config.js` (Firebase Key Placeholder)
+4. `src/auth.js` (PIN Logic)
+5. `src/lobby.js` (Slot & Customizer)
+6. `src/game.js` (Engine, Camera, Input, Network combined core)
+
+
+
+
+
+
+# Role Definition
+너는 시니어 게임 엔진 아키텍트이자 UI/UX 전문가다.
+우리는 **'iOS/iPadOS Chrome 브라우저'** (PWA Mode) 환경의 4인 가족 전용 게임 'Family Town'을 개발한다.
+
+# Project Constraints
+1. **Target:** iOS Chrome PWA (Strict Standalone).
+2. **Tech:** PixiJS v7+, Firebase v9 Modular.
+3. **Style:** 48px Grid Tile, Skeletal Animation, Pixel Art.
+
+# 1. Asset & Config Strategy
+- **Assets:** Load from `assets/`. (Use White/Grayscale sprites for Tinting).
+- **Map:** Hardcoded 2D Array (MVP).
+
+# 2. Module Specifications
+
+## A. Auth System (src/auth.js)
+- **PIN Login:** 버튼 없이 **'숫자 키패드'**만 노출. 4자리 입력 시 자동 로그인.
+
+## B. Lobby (src/lobby.js)
+- **Card UI:** 3 Slot Character Cards (Preview, Info, Enter/Delete Btn).
+- **Customizer:** Body, Hair, Color, Face setup.
+
+## C. Game UI & HUD (src/ui.js)
+*모든 UI는 게임 화면 위에 떠 있는(Overlay) 반투명 스타일이다.*
+- **Top-Left:** `[ ☰ ]` (Menu).
+- **Top-Right:** `[ 👥 ]` (Friends), `[ 🔍 ]` (Zoom Toggle 48px/64px).
+- **Bottom-Left:**
+  - `[ 🎒 ]` (Inventory).
+  - `[ 💬 ]` (Chat): **채팅 토글 버튼**.
+
+## D. Chat Interface (src/ui.js & src/network.js) - *Updated Requirement*
+- **Layout:**
+  - 평소에는 **하단에 빈 공간(여백)이 절대 없어야 한다.** (Full Screen Game).
+  - 좌측 하단 `[ 💬 ]` 버튼 클릭 시, 숨겨져 있던 **'입력창(Input Bar)'**이 키보드와 함께 화면 하단에서 슬라이드 업 된다.
+  - 입력창 활성화 시, 게임 Canvas가 찌그러지지 않도록 `VisualViewport` API를 활용하거나 CSS `bottom` 값을 키보드 높이에 맞춰 조정한다.
+  - 메시지 전송(Enter) 또는 배경 터치 시, 키보드와 입력창은 다시 숨겨진다.
+- **Bubble:** 캐릭터 머리 위 말풍선 표시 (5초 후 소멸).
+
+## E. In-Game Engine (src/engine.js)
+- **Render:** 48px Tilemap, Nearest Neighbor Scale.
+- **Skeletal:** JSON 데이터 기반 파츠 조립 및 절차적 애니메이션.
+- **Z-Sorting:** Y좌표 기준 깊이 정렬.
+- **Camera:** 줌/키보드 활성화 시에도 내 캐릭터 중심 유지.
+
+## F. Input (src/input.js)
+- **Move:** Tap-to-Move (A* Pathfinding).
+
+## G. iOS Optimization (index.html)
+- **Meta:** `<meta name="apple-mobile-web-app-capable" content="yes">`
+- **Viewport:** `<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, interactive-widget=resizes-content">` (키보드 대응 필수).
+- **CSS:** `overscroll-behavior: none`, `touch-action: none`.
+
+# Task
+위 명세를 준수하여 **즉시 실행 가능한 MVP 코드**를 작성하라.
+작성할 파일:
+1. `index.html` (PWA Meta, UI Layout, **Hidden Chat Input**)
+2. `style.css` (iOS Reset, Floating HUD, **Slide-up Input Bar**)
+3. `src/config.js` (Firebase Key)
+4. `src/auth.js` (PIN Logic)
+5. `src/lobby.js` (Slot & Customizer)
+6. `src/game.js` (Engine, Camera, Input, Network combined)
+
+
+
+
+# Module Specification: Housing, Portal & Interior
+이 명세서는 'Family Town'의 집 건축, 실내 진입, 가구 배치 시스템을 정의한다.
+
+## 1. Data Schema (Firebase Structure)
+데이터 관리의 효율성을 위해 외부(World)와 내부(Interior) 데이터를 분리한다.
+
+- **`world/buildings/{buildID}`**: 야외에 지어진 건물 데이터.
+  - `{ type: "house_red", x: 10, y: 15, owner: "dad", interiorID: "room_dad_01" }`
+- **`interiors/{interiorID}/items/{itemID}`**: 집 내부의 가구 배치 데이터.
+  - `{ type: "bed_king", x: 2, y: 2, rotation: 0 }`
+- **`players/{userID}/currentMap`**: 플레이어의 현재 위치(Map ID).
+  - Default: `"world"` (야외)
+  - Indoor: `"room_dad_01"` (특정 집 내부)
+
+## 2. Housing System (Exterior) - `src/housing.js`
+- **Build Mode:**
+  - UI에서 집을 선택하면 3x3 타일(144px) 크기의 **반투명 유령(Ghost) 건물**이 커서를 따라다닌다.
+  - **Validation:** 설치 영역 내에 `Collision(1)` 타일이나 타 플레이어가 있으면 설치 불가 (Red Tint 표시).
+- **Placement:**
+  - 설치 확정 시 DB에 저장하고, 해당 3x3 영역의 그리드 데이터를 `1(Block)`로 변경하여 이동을 막는다.
+  - **Door Offset:** 건물의 좌표 기준 `(x+1, y+2)` 위치를 '문(Door)' 좌표로 지정한다.
+
+## 3. Portal System (Scene Transition) - `src/portal.js`
+
+- **Concept:** 별도의 Scene 로딩 없이, **렌더링 필터링(Filtering)**으로 실내/외 전환을 구현한다.
+- **Filtering Logic:**
+  - `EntityManager`는 `entity.currentMap === player.currentMap`인 객체만 화면에 그린다.
+  - 즉, 내가 집에 들어가면 `"world"`에 있는 가족들은 내 화면에서 사라진다.
+- **Enter Logic:**
+  - 플레이어가 집의 '문(Door)' 타일 위에서 탭하면 작동.
+  - 화면 Fade-Out -> `player.currentMap`을 해당 건물의 `interiorID`로 변경 -> 집 내부 입구 좌표(예: 5, 8)로 플레이어 이동 -> Fade-In.
+- **Exit Logic:**
+  - 집 내부의 '현관 매트(Exit)' 타일 탭 시, `currentMap`을 `"world"`로 변경하고 원래 집 문 앞으로 이동.
+
+## 4. Interior System (Furniture) - `src/interior.js`
+- **Environment:**
+  - 실내는 **10x10 크기의 고정된 방(Room)** 타일맵을 사용한다.
+  - 방의 가장자리는 `Wall(1)` 타일로 막혀 있다.
+- **Furniture Mode:**
+  - 실내에서만 활성화되는 [ 🪑 ] 버튼으로 진입.
+  - 로직은 Housing과 동일하되, **'문(Door) 앞 1칸'은 절대 배치 불가 영역**으로 설정한다(갇힘 방지).
+- **Persistence:**
+  - 방을 나갔다 들어와도 가구 배치가 유지되도록 `interiors` DB와 실시간 동기화한다.
+
+## 5. Rendering & Physics (Crucial)
+- **Depth Sorting (Z-Index):**
+  - **Exterior:** 집 스프라이트의 `anchor.y`를 `1.0`(바닥)으로 설정한다. 캐릭터가 집 지붕보다 위에 있으면(y가 작으면) 집 뒤로 가려지고, 집보다 아래에 있으면(y가 크면) 집 앞을 가린다.
+  - **Interior:** 침대, 식탁 등 가구도 동일하게 `anchor.y = 1.0` 및 Y-Sort를 적용하여, 캐릭터가 침대 앞/뒤로 다닐 때 원근감을 처리한다.
+- **Collision Update:**
+  - 건물이나 가구가 배치/삭제될 때마다, 즉시 `Collision Grid` 배열을 갱신하여 캐릭터가 통과하지 못하게 한다.
+
+# Required Assets
+- `assets/building_house_01.png` (3x3 size)
+- `assets/tile_floor.png` (Interior floor)
+- `assets/tile_wall.png` (Interior wall)
+- `assets/furniture_bed.png`, `assets/furniture_table.png`
+
+
+
+
+## K. Resource & Item Drop System (src/item_manager.js)
+- **Data Sync:**
+  - `world/drops` 경로에 필드 아이템을 동기화하여 모든 가족이 공유한다 (선착순 줍기).
+  - `players/{ID}/inventory` 경로에 개인 소지품 수량을 관리한다.
+
+- **Harvesting Action:**
+  - 자원(나무, 돌) 터치 시 캐릭터가 접근하여 채집 애니메이션을 수행한다.
+  - 채집 성공 시, 자원 위치 주변 랜덤한 좌표(반경 1타일 이내)에 아이템 데이터를 생성(`push`)한다.
+  - **Visual:** 자원 스프라이트에 `Shake`(흔들림) 효과를 준다.
+
+- **Drop Animation (Parabola):**
+  - 아이템 생성 시, 즉시 바닥에 배치하지 않고 **'위로 솟구쳤다가 떨어지는'** 포물선 트윈(Tween) 애니메이션을 적용한다.
+  - 아이템 아래에 반투명 그림자(Shadow)를 렌더링하여 입체감을 준다.
+
+- **Looting Action:**
+  - 떨어진 아이템 터치 시 `Fly-to-UI` 효과 실행:
+    - 아이템이 화면 좌측 하단 `[ 🎒 ]` 버튼 위치로 베지에 곡선을 그리며 날아간다.
+    - 도착 즉시 DB에서 해당 Drop 데이터를 삭제하고, 인벤토리 수량을 증가시킨다.
+
+
+
+
+
+    # Module Specification: Economy & P2P Trade
+
+## 1. Data Schema (Firebase Structure)
+- **`players/{userID}/wallet`**: 재화 보유량. `{ gold: 1000 }`.
+- **`server/daily_seed`**: 매일 00시에 갱신되는 난수 시드값 (물가 변동용).
+- **`trades/{sessionID}`**: 실시간 거래 세션 데이터.
+  - `{ p1: "dad", p2: "mom", p1_offer: {...}, p2_offer: {...}, status: "locked"|"confirmed" }`
+
+## 2. Shop System (Town Center) - `src/shop.js`
+- **Location & Interaction:**
+  - 맵 정중앙(예: 50, 50)에 '상점 건물'을 고정 배치한다.
+  - 상점 터치 시, 화면 전환 없이 **'상점 UI 모달(Popup)'**을 띄운다.
+- **Dynamic Pricing (24h Cycle):**
+  - **Algorithm:** 아이템의 기본 가격(Base Price)에 `Daily Random Multiplier`를 곱해 가격을 결정한다.
+  - **Sync:** 모든 가족이 동일한 가격을 봐야 하므로, `new Date().toDateString()`(날짜 문자열)을 시드(Seed)로 하는 난수 발생기를 사용하여 가격 변동폭(0.8 ~ 1.3배)을 계산한다.
+  - **UI:** [구매] 탭과 [판매] 탭으로 나뉘며, 내 인벤토리 아이템을 선택해 판매하면 즉시 `gold`가 증가한다.
+
+## 3. P2P Interaction (Friend Trade) - `src/interaction.js`
+- **Approach Logic (이동):**
+  - 화면 내의 **친구 캐릭터**를 터치하면 이동 로직이 실행된다.
+  - **Pathfinding:** 친구의 좌표가 목표가 아니라, 친구의 **'상하좌우 인접 타일 중 빈 곳'**을 목표로 설정한다. (겹침 방지).
+  - 이동 후 친구를 바라보며 멈춘다.
+- **Interaction Bubble:**
+  - 도착 시, 친구 머리 위에 **[ 🤝 거래하기 ]** 버튼 모양의 말풍선을 띄운다.
+  - 내가 버튼을 누르면 상대방에게 '거래 요청' 팝업이 뜬다.
+
+## 4. Trade Interface - `src/trade.js`
+- **Trade Window:**
+  - 화면이 반으로 나뉘어 **[내 제안]**과 **[상대 제안]** 영역이 표시된다.
+  - 인벤토리에서 아이템이나 골드를 등록할 수 있다.
+- **Flow:**
+  1. **Offer:** 양쪽이 주고받을 물품을 올린다.
+  2. **Lock:** [준비 완료]를 누르면 수정이 불가능해진다 (Lock 상태).
+  3. **Confirm:** 양쪽 모두 [교환 확정]을 누르면 서버 트랜잭션을 통해 소유권이 이전된다.
+
+
+
+
+
+  7. `src/shop.js` (Shop Logic with Daily Price)
+8. `src/trade.js` (P2P Approach & Trade UI)
+*Note: 거래 시스템 구현 시, 친구 캐릭터 터치 시 겹치지 않고 '1타일 앞'에 멈추는 로직을 최우선으로 검증하라.*
+
+
+
+
+# Task: Step 6 - RPG Stats, Combat & Death
+`src/rpg_core.js`, `src/monster.js` 를 작성하라.
+
+1. Player Stats (Data Structure)
+   - `players/{ID}/stats` 경로에 데이터 추가.
+   - 기본값: `{ level: 1, xp: 0, hp: 100, max_hp: 100, str: 5, vit: 5, int: 5, agi: 5, def: 0, free_points: 0 }`.
+   - **Level Up Logic:** 경험치(xp) 획득 시 `(Level * 100)` 도달하면 레벨업. `free_points` +3 지급. UI에서 스탯 투자 가능.
+
+2. Monster System
+   - 특정 구역(예: 마을 밖 숲)에 몬스터 스폰.
+   - **AI Logic:**
+     - 평소: 랜덤 배회 (Idle).
+     - 감지: 플레이어가 3타일 내 접근 시 추격(Chase).
+     - 공격: 1타일 인접 시 공격 (플레이어 HP 감소).
+   - 처치 시: 경험치 지급 및 시체 소멸.
+
+3. Death & Respawn (Faint)
+   - 플레이어 `hp <= 0` 도달 시:
+     - 상태를 `fainted`(기절)로 변경하고 조작 차단.
+     - 화면 암전(Fade Out) 후 3초 뒤 '마을 우물(Town Well)' 좌표(예: 50, 50)로 강제 이동.
+     - HP 100% 회복 후 기상(Wake up) 메시지 출력.
+
+
+
+
+
+# Task: Step 7 - Object Regeneration System
+`src/environment.js` 를 작성하라.
+
+1. Object Lifecycle
+   - 자원(나무, 돌, 꽃) 채집(제거) 시, DB에서 완전히 삭제하지 않고 상태를 `{ active: false, respawnAt: timestamp }`로 업데이트한다.
+   - **Respawn Time:**
+     - 풀/꽃: 1분 (테스트용 짧은 시간)
+     - 나무: 5분
+     - 돌/광석: 10분
+     (상수는 `config.js`에서 관리하여 추후 미세조정 용이하게 할 것)
+
+2. Rendering Logic
+   - `active: false`인 객체는 화면에 렌더링하지 않는다 (투명 처리 및 충돌 해제).
+   - 클라이언트 `ticker`(루프)에서 1초마다 `CurrentTime > respawnAt`을 검사하여, 시간이 되면 다시 `active: true`로 렌더링하고 충돌(Collision)을 활성화한다.
+
+
+
+
+
+     # Task: Step 8 - Inn & Rental System
+`src/housing_rental.js` 를 작성하라.
+
+1. Restriction (건축 제한)
+   - `Housing` 시스템의 '건축 모드'는 사용자가 충분한 재화(Gold)와 재료(Wood/Stone)를 보유하기 전까지 잠금(Lock) 처리한다.
+
+2. The Inn (여관/렌탈)
+   - 마을에 '여관(Inn)' 건물을 배치한다.
+   - 상호작용 시 **[방 렌탈]** 팝업 출력.
+   - **Rental Logic:**
+     - 소액의 골드(예: 100G)를 지불하면 `Inn Room`으로 입장할 수 있는 권한 획득.
+     - `player.spawnPoint`가 여관방 침대로 변경됨.
+   - **Data:** `players/{ID}/rental` 정보에 만료 시간 등을 기록.
+
+3. Economy Updates
+   - 추후 '땅 매매', '세금' 기능을 위해 `world/land_prices` (땅 시세) 데이터 구조를 미리 잡아둔다.

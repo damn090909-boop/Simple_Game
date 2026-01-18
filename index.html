@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="theme-color" content="#000000">
+    <title>Family Town</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- PixiJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+    <!-- Firebase SDK (Version 9 via CDN - Modules will be imported in config.js) -->
+    <!-- We will use ES Module imports in our src files -->
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <!-- UI Layers -->
+    <div id="ui-layer">
+        <!-- Auth Screen -->
+        <div id="auth-screen" class="screen active">
+            <div class="pin-container">
+                <input type="password" id="pin-display" readonly placeholder="• • • •">
+                <div class="keypad">
+                    <button class="key" data-num="1">1</button>
+                    <button class="key" data-num="2">2</button>
+                    <button class="key" data-num="3">3</button>
+                    <button class="key" data-num="4">4</button>
+                    <button class="key" data-num="5">5</button>
+                    <button class="key" data-num="6">6</button>
+                    <button class="key" data-num="7">7</button>
+                    <button class="key" data-num="8">8</button>
+                    <button class="key" data-num="9">9</button>
+                    <button class="key empty"></button>
+                    <button class="key" data-num="0">0</button>
+                    <button class="key backspace">⌫</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobby-screen" class="screen hidden">
+            <h2 class="title">My Characters</h2>
+            <div class="character-slots" id="character-slots">
+                <!-- Javascript will inject slots here -->
+            </div>
+        </div>
+
+        <!-- Character Creator Modal -->
+        <div id="creator-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Customize</h3>
+                <div class="preview-area" id="creator-preview"></div>
+                <div class="controls">
+                    <!-- Dynamic controls -->
+                </div>
+                <button id="save-char-btn" class="btn-primary">START GAME</button>
+            </div>
+        </div>
+
+        <!-- Game HUD -->
+        <div id="game-hud" class="screen hidden">
+            <div class="top-bar">
+                <button class="hud-btn" id="menu-btn">☰</button>
+                <div class="spacer"></div>
+                <button class="hud-btn" id="zoom-btn">🔍</button>
+            </div>
+            
+            <div class="bottom-bar">
+                <button class="hud-btn" id="inventory-btn">🎒</button>
+                <div class="spacer"></div>
+                <button class="hud-btn" id="chat-toggle-btn">💬</button>
+            </div>
+
+            <!-- Chat Input (Slide Up) -->
+            <div id="chat-bar" class="hidden">
+                <input type="text" id="chat-input" placeholder="Say something..." autocomplete="off">
+                <button id="chat-send">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Module Entry -->
+    <script type="module" src="src/app.js"></script>
+</body>
+</html>
