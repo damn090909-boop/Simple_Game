@@ -207,24 +207,22 @@ function openCreatorModal() {
     const closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.className = "close-modal-btn";
-    closeBtn.innerHTML = "✕"; // Using better X symbol
+    closeBtn.innerHTML = "X";
     closeBtn.style.position = "absolute";
-    closeBtn.style.top = "5px";
-    closeBtn.style.right = "5px";
-    closeBtn.style.background = "rgba(255, 0, 0, 0.8)"; // Red background for visibility
-    closeBtn.style.border = "2px solid white";
-    closeBtn.style.borderRadius = "50%"; // Circular button
-    closeBtn.style.width = "35px";
-    closeBtn.style.height = "35px";
+    closeBtn.style.top = "10px";
+    closeBtn.style.right = "10px";
+    closeBtn.style.background = "transparent";
+    closeBtn.style.border = "none";
     closeBtn.style.color = "white";
-    closeBtn.style.fontSize = "20px";
+    closeBtn.style.fontSize = "24px";
     closeBtn.style.fontWeight = "bold";
     closeBtn.style.cursor = "pointer";
-    closeBtn.style.zIndex = "1000"; // Very high z-index
-    closeBtn.style.display = "flex";
-    closeBtn.style.alignItems = "center";
-    closeBtn.style.justifyContent = "center";
-    closeBtn.onclick = () => modal.classList.add("hidden");
+    closeBtn.style.zIndex = "1000";
+    closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        modal.classList.add("hidden");
+    };
     modalContent.appendChild(closeBtn);
 
     // Top Half: Preview
