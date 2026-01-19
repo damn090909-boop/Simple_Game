@@ -59,35 +59,44 @@ function createSlotElement(charData) {
     slot.style.alignItems = "stretch";
     slot.style.padding = "10px";
 
+    // --- Left Half (50%) : Portrait / Silhouette ---
+    const leftCol = document.createElement("div");
+    leftCol.className = "slot-left";
+
+    const previewBox = document.createElement("div");
+    previewBox.className = "char-preview-box";
+
+    const preview = document.createElement("div");
+    preview.className = "char-preview";
+
     if (charData) {
         slot.classList.add("filled");
+        preview.textContent = "🧙‍♂️"; // TODO: Real preview
+        // Make preview standard brightness
+        preview.style.filter = "none";
+    } else {
+        slot.classList.add("empty");
+        preview.textContent = "👤";
+        // Silhouette effect (Dark/Black)
+        preview.style.filter = "brightness(0) grayscale(100%)";
+        preview.style.opacity = "0.7";
+    }
 
-        // --- Left Half (50%) : Portrait ---
-        const leftCol = document.createElement("div");
-        leftCol.className = "slot-left";
+    previewBox.appendChild(preview);
+    leftCol.appendChild(previewBox);
+    slot.appendChild(leftCol);
 
-        const previewBox = document.createElement("div");
-        previewBox.className = "char-preview-box";
+    // --- Right Half (50%) : Info + Buttons ---
+    const rightCol = document.createElement("div");
+    rightCol.className = "slot-right";
 
-        const preview = document.createElement("div");
-        preview.className = "char-preview";
-        preview.textContent = "🧙‍♂️";
+    // Top: Info
+    const infoDiv = document.createElement("div");
 
-        previewBox.appendChild(preview);
-        leftCol.appendChild(previewBox);
-        slot.appendChild(leftCol);
-
-        // --- Right Half (50%) : Info + Buttons ---
-        const rightCol = document.createElement("div");
-        rightCol.className = "slot-right";
-
-        // Top: Info
-        const infoDiv = document.createElement("div");
+    if (charData) {
         const nameDisplay = document.createElement("div");
         nameDisplay.className = "char-name";
-        nameDisplay.textContent = charData.name || "Hero";
-        // Font sizes are handled in CSS or inherited, but okay to keep simple overrides if needed, 
-        // but let's rely on CSS mostly. 
+        nameDisplay.textContent = charData.name;
         nameDisplay.style.fontSize = "18px";
 
         const infoDisplay = document.createElement("div");
@@ -96,12 +105,23 @@ function createSlotElement(charData) {
 
         infoDiv.appendChild(nameDisplay);
         infoDiv.appendChild(infoDisplay);
-        rightCol.appendChild(infoDiv);
+    } else {
+        // Empty State Info
+        const emptyLabel = document.createElement("div");
+        emptyLabel.className = "char-name";
+        emptyLabel.textContent = "Empty Slot";
+        emptyLabel.style.fontSize = "16px";
+        emptyLabel.style.color = "#777";
+        infoDiv.appendChild(emptyLabel);
+    }
 
-        // Bottom: Buttons
-        const btnRow = document.createElement("div");
-        btnRow.className = "slot-buttons";
+    rightCol.appendChild(infoDiv);
 
+    // Bottom: Buttons
+    const btnRow = document.createElement("div");
+    btnRow.className = "slot-buttons";
+
+    if (charData) {
         // Delete Button
         const delBtn = document.createElement("button");
         delBtn.textContent = "🗑";
@@ -121,25 +141,30 @@ function createSlotElement(charData) {
             enterGame(charData);
         };
         btnRow.appendChild(enterBtn);
-
-        rightCol.appendChild(btnRow);
-        slot.appendChild(rightCol);
-
     } else {
-        slot.classList.add("empty");
-        // Center content for empty slot - Handled by CSS .slot.empty
+        // Create Button ([+])
+        const createBtn = document.createElement("button");
+        createBtn.textContent = "+";
+        createBtn.className = "slot-btn play-btn"; // Use play-btn style (Green) or maybe Neutral?
+        // Let's make it look distinct or just standard Create
+        createBtn.style.width = "100%"; // Or same small size? 
+        // User said "Consistent small size" for Exists. 
+        // For Empty, "Black Silhouette + [+] Button". 
+        // Let's keep consistency. A small [+] button in the corner looks neat.
+        // But maybe a bit wider for clear action?
+        // Let's stick to the styling class. 
+        createBtn.onclick = (e) => {
+            e.stopPropagation();
+            openCreatorModal();
+        };
+        btnRow.appendChild(createBtn);
 
-        const createIcon = document.createElement("div");
-        createIcon.textContent = "+";
-        createIcon.className = "create-icon";
-        slot.appendChild(createIcon);
-
-        const label = document.createElement("div");
-        label.textContent = "New Character";
-        slot.appendChild(label);
-
+        // Make the whole slot clickable for creation too?
         slot.onclick = () => openCreatorModal();
     }
+
+    rightCol.appendChild(btnRow);
+    slot.appendChild(rightCol);
 
     return slot;
 }
