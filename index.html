@@ -23,6 +23,11 @@
 
     <!-- UI Layers -->
     <div id="ui-layer">
+        <!-- Chat Input -->
+        <div id="chat-input-container" class="hidden">
+            <input type="text" id="chat-input" placeholder="Type a message...">
+            <button id="chat-send-btn">Send</button>
+        </div>
         <!-- Auth Screen -->
         <div id="auth-screen" class="screen active">
             <div class="auth-content">
@@ -88,19 +93,9 @@
 
         <!-- Game HUD -->
         <div id="game-hud" class="screen hidden">
-            <div class="top-bar">
-                <button class="hud-btn" id="menu-btn">☰</button>
-                <div class="spacer"></div>
-                <button class="hud-btn" id="zoom-btn">🔍</button>
-            </div>
+            <!-- Dynamically populated by ui.js -->
 
-            <div class="bottom-bar">
-                <button class="hud-btn" id="inventory-btn">🎒</button>
-                <div class="spacer"></div>
-                <button class="hud-btn" id="chat-toggle-btn">💬</button>
-            </div>
-
-            <!-- Chat Input (Slide Up) -->
+            <!-- Chat Input (Slide Up) - Kept in DOM for logic -->
             <div id="chat-bar" class="hidden">
                 <input type="text" id="chat-input" placeholder="Say something..." autocomplete="off">
                 <button id="chat-send">➤</button>

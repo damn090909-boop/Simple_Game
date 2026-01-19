@@ -1,87 +1,103 @@
-import { app, worldContainer, TILE_SIZE, mapData } from "./engine.js";
-import { updateMyPosition } from "./network.js";
-import { currentUser } from "./auth.js";
-import { db, ref, update } from "./config.js";
+// src/portal.js
+import { app, worldContainer, mySprite, backgroundLayer, entityLayer, TILE_SIZE, updateCurrentMapId, getCurrentMapId, generateMap } from "./engine.js";
 
-// State
-let currentMap = "world";
+export class PortalSystem {
+    constructor() {
+        this.portals = {}; // { "x,y": { type: "enter"|"exit", targetMap: "id", targetX: 0, targetY: 0 } }
+    }
 
-export function initPortal() {
-    // Listen for taps on Portal Tiles (Value 2)
-    // We already have generic Input listener in src/input.js
-    // Ideally Input should call us if target is Portal.
-    // But Input.js handles 'Move Request'. If target is Portal(2), pathfinder might fail if it treats 2 as Block?
-    // In InitHousing, we set Door = 2.
-    // Let's patch Pathfinder to allow 2.
+    registerPortal(x, y, buildingId) {
+        // Door at World (Enter)
+        this.portals[`${x},${y}`] = {
+            type: "enter",
+            targetMap: `interior_${buildingId}`,
+            targetX: 5, // Center of room
+            targetY: 8  // Bottom of room
+        };
+        console.log(`Registered Portal at ${x},${y} -> interior_${buildingId}`);
+    }
 
-    // Better: Monitor Player Position. If entering Door Tile, trigger Portal.
-    app.ticker.add(checkPortalTrigger);
-}
+    checkTap(worldX, worldY) {
+        // Check if tap hits a portal tile
+        // Assuming tap is precise for now, or match grid.
+        // worldX/Y are pixels.
 
-function checkPortalTrigger() {
-    // Find my sprite
-    // Need export from engine? Or store in a global state manager?
-    // MVP hack: Assuming we can access player via a singleton or property.
-    // Passing...
+        const gx = Math.floor(worldX / TILE_SIZE);
+        const gy = Math.floor(worldY / TILE_SIZE);
 
-    // Actually, let's just listen to Grid Taps in Input.
-    // If double tap? Or just walking onto it?
-    // Spec: "Enter Logic: Tap Door tile... Fade Out -> Switch... -> Teleport"
-    // So distinct from Moving.
-}
+        const key = `${gx},${gy}`;
+        const portal = this.portals[key];
 
-// Since I cannot modify src/input.js easily in this turn without overwriting, 
-// I will export a 'teleport' function and use it inside Housing logic or Engine?
-// No, the spec says "Tap 'Door' tile".
-// If I tap a door, Input.js sees it. 
-// If it's value 2, Pathfinder might say "Blocked" (since we only check !== 1?).
-// I need to ensure Pathfinder allows 2. (Checked pathfinder.js: `if (mapData[endY][endX] === 1) return null;`. So 2 is OK!)
-// So player walks to door.
-// When 'arriving' at door, trigger.
+        if (portal) {
+            this.transition(portal);
+            return true;
+        }
 
-export async function enterInterior(interiorID, entryX, entryY) {
-    console.log("Entering Interior:", interiorID);
+        // Also check "Exit" mat in interior
+        // If current map is interior, we manually check Mat tile (5, 9).
+        const currentMap = getCurrentMapId();
+        if (currentMap.startsWith("interior_")) {
+            if (gx === 5 && gy === 9) { // Exit Mat
+                this.transition({
+                    type: "exit",
+                    targetMap: "main_world",
+                    targetX: 10, // Default for now, ideally save last world pos
+                    targetY: 10
+                });
+                return true;
+            }
+        }
 
-    // 1. Fade Out
-    await fadeEffect(0, 1);
+        return false;
+    }
 
-    // 2. Change Data
-    currentMap = interiorID;
-    update(ref(db, `users/${currentUser.uid}`), { currentMap: interiorID });
+    transition(data) {
+        console.log("Portal Transition:", data);
 
-    // 3. Move Player (Local) to Entry
-    // We need access to mySprite from engine.
-    // This requires refactoring Engine to export 'teleportPlayer(x, y)'.
-    // For now, assume engine follows global state or we update firebase and engine updates?
-    // Engine update is throttle. Teleport is instant.
+        // 1. Fade Out
+        const fade = new PIXI.Graphics();
+        fade.beginFill(0x000000);
+        fade.drawRect(0, 0, app.screen.width, app.screen.height);
+        fade.endFill();
+        fade.alpha = 0;
+        fade.zIndex = 999999;
+        app.stage.addChild(fade); // UI Layer, separate from world
 
-    // 4. Fade In
-    await fadeEffect(1, 0);
-}
+        let alpha = 0;
+        const fadeOut = (delta) => {
+            alpha += 0.05 * delta;
+            fade.alpha = alpha;
+            if (alpha >= 1) {
+                app.ticker.remove(fadeOut);
 
-function fadeEffect(from, to) {
-    return new Promise(resolve => {
-        const overlay = document.createElement("div");
-        overlay.style.position = "fixed";
-        overlay.style.top = 0;
-        overlay.style.left = 0;
-        overlay.style.width = "100%";
-        overlay.style.height = "100%";
-        overlay.style.background = "#000";
-        overlay.style.opacity = from;
-        overlay.style.transition = "opacity 0.5s";
-        overlay.style.zIndex = 99999;
-        document.body.appendChild(overlay);
+                // 2. Switch Map
+                updateCurrentMapId(data.targetMap);
 
-        // Force reflow
-        overlay.offsetHeight;
+                // Reposition Player
+                mySprite.x = data.targetX * TILE_SIZE + 24;
+                mySprite.y = data.targetY * TILE_SIZE + 48;
 
-        requestAnimationFrame(() => {
-            overlay.style.opacity = to;
-            setTimeout(() => {
-                if (to === 0) overlay.remove();
-                resolve();
-            }, 500);
-        });
-    });
+                // If Interior, generate Room Map
+                if (data.targetMap.startsWith("interior_")) {
+                    generateMap(10, 10, "interior"); // Custom generator for room
+                } else {
+                    generateMap(20, 20, "world"); // Restore world
+                }
+
+                // 3. Fade In
+                app.ticker.add(fadeIn);
+            }
+        };
+
+        const fadeIn = (delta) => {
+            alpha -= 0.05 * delta;
+            fade.alpha = alpha;
+            if (alpha <= 0) {
+                fade.destroy();
+                app.ticker.remove(fadeIn);
+            }
+        };
+
+        app.ticker.add(fadeOut);
+    }
 }

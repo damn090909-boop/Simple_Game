@@ -82,5 +82,76 @@ export class Character extends PIXI.Container {
             this.view.y = -24; // Default Y offset if needed
             this.animTime = 0;
         }
+
+        // Chat Bubble Timer
+        if (this.chatBubble) {
+            this.chatTimer += (delta / 60); // approx seconds
+            if (this.chatTimer > 5) {
+                this.chatBubble.alpha -= 0.05;
+                if (this.chatBubble.alpha <= 0) {
+                    this.removeChat();
+                }
+            }
+        }
+    }
+
+
+    // Item 33: Chat Bubble
+    showChat(message) {
+        // Remove existing bubble if any
+        if (this.chatBubble) {
+            this.chatBubble.destroy();
+            this.chatBubble = null;
+        }
+
+        const bubble = new PIXI.Container();
+
+        // Text
+        const textStyle = new PIXI.TextStyle({
+            fontFamily: "Arial",
+            fontSize: 14,
+            fill: "black",
+            wordWrap: true,
+            wordWrapWidth: 120
+        });
+        const textMetrics = PIXI.TextMetrics.measureText(message, textStyle);
+        const text = new PIXI.Text(message, textStyle);
+        text.x = 10;
+        text.y = 10;
+
+        // Background (Rounded Rect)
+        const bg = new PIXI.Graphics();
+        const w = textMetrics.width + 20;
+        const h = textMetrics.height + 20;
+
+        bg.beginFill(0xFFFFFF);
+        bg.lineStyle(2, 0x000000, 1);
+        bg.drawRoundedRect(0, 0, w, h, 10);
+
+        // Tail
+        bg.moveTo(w / 2 - 5, h);
+        bg.lineTo(w / 2, h + 8);
+        bg.lineTo(w / 2 + 5, h);
+        bg.endFill();
+
+        bg.addChild(text);
+        bubble.addChild(bg);
+
+        // Position above head
+        bubble.pivot.set(w / 2, h + 8); // Pivot at tail bottom
+        bubble.y = -60; // Above sprite
+        bubble.x = 0;
+
+        this.addChild(bubble);
+        this.chatBubble = bubble;
+
+        // Auto-remove after 5 seconds
+        if (this.chatTimer) clearTimeout(this.chatTimer);
+        this.chatTimer = setTimeout(() => {
+            if (this.chatBubble) {
+                this.chatBubble.destroy();
+                this.chatBubble = null;
+            }
+        }, 5000);
     }
 }

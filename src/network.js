@@ -1,9 +1,9 @@
 import { db, ref, set, onValue, onDisconnect, push, update, remove, child } from "./config.js";
-import { app, worldContainer, TILE_SIZE } from "./engine.js";
+import { app, worldContainer, TILE_SIZE, getCurrentMapId } from "./engine.js";
 import { Assets } from "./loader.js";
-import { showChatBubble } from "./ui.js";
+import { Character } from "./character.js";
 
-const OTHER_PLAYERS = {}; // { uid: { sprite: PIXI.Container, targetX, targetY } }
+export const OTHER_PLAYERS = {}; // { uid: { sprite: Character, targetX, targetY } }
 let myUid = null;
 let lastSentTime = 0;
 
@@ -15,6 +15,7 @@ export function initNetwork(user, localPlayer) {
     set(playerRef, {
         x: localPlayer.x,
         y: localPlayer.y,
+        mapId: getCurrentMapId(),
         name: user.name,
         skin: user.skinColor || "#ffffff",
         timestamp: Date.now()
@@ -41,9 +42,17 @@ export function initNetwork(user, localPlayer) {
                 remote.targetX = pData.x;
                 remote.targetY = pData.y;
 
+                // Update Map ID for visibility
+                if (remote.sprite) {
+                    remote.sprite.mapId = pData.mapId || "main_world";
+                }
+
                 // Chat Check
                 if (pData.chat && pData.chatTime > (remote.lastChatTime || 0)) {
-                    showChatBubble(remote.sprite, pData.chat);
+                    // Use Character method
+                    if (remote.sprite.showChat) {
+                        remote.sprite.showChat(pData.chat);
+                    }
                     remote.lastChatTime = pData.chatTime;
                 }
             }
@@ -53,12 +62,8 @@ export function initNetwork(user, localPlayer) {
         Object.keys(OTHER_PLAYERS).forEach(uid => {
             if (!data[uid]) {
                 // Player gone
-                worldContainer.children.map(layer => {
-                    // Check children of entity layer... 
-                    // Wait, we need access to entityLayer or just remove from parent
-                    const sprite = OTHER_PLAYERS[uid].sprite;
-                    if (sprite && sprite.parent) sprite.parent.removeChild(sprite);
-                });
+                const sprite = OTHER_PLAYERS[uid].sprite;
+                if (sprite && sprite.parent) sprite.parent.removeChild(sprite);
                 delete OTHER_PLAYERS[uid];
             }
         });
@@ -68,61 +73,56 @@ export function initNetwork(user, localPlayer) {
     app.ticker.add(remoteLoop);
 }
 
-// Throttle update (100ms)
 export function updateMyPosition(x, y) {
     const now = Date.now();
     if (now - lastSentTime > 100) {
         update(ref(db, `players/${myUid}`), {
             x: Math.round(x),
             y: Math.round(y),
+            mapId: getCurrentMapId(),
             timestamp: now
         });
         lastSentTime = now;
     }
 }
 
-function spawnRemotePlayer(uid, data) {
-    // Similar to spawnPlayer but for others
-    // We need to access entityLayer. 
-    // Optimization: export entityLayer from engine.js? Or use worldContainer.children[1] (risky)
-    // Let's modify engine.js to export 'addEntity'.
-    // For now, assuming worldContainer.getChildAt(1) is entity layer.
+export function sendChat(message) {
+    if (!myUid) return;
+    update(ref(db, `players/${myUid}`), {
+        chat: message,
+        chatTime: Date.now()
+    });
+}
 
-    const sprite = new PIXI.Sprite(Assets.textures.body_basic); // Temp
-    sprite.anchor.set(0.5, 1.0);
-    sprite.tint = 0xAAAAAA; // Gray out others slightly? Or data.skin
-    // Tint from hex string? Pixi needs 0x...
-    if (data.skin && data.skin.startsWith("#")) {
-        sprite.tint = parseInt(data.skin.replace("#", ""), 16);
-    }
+function spawnRemotePlayer(uid, data) {
+    const charData = {
+        name: data.name,
+        skinColor: data.skin,
+        parts: {}
+    };
+    const sprite = new Character(charData);
 
     sprite.x = data.x;
     sprite.y = data.y;
     sprite.zIndex = data.y;
+    sprite.mapId = data.mapId || "main_world"; // Initial mapId
 
     // Store
     OTHER_PLAYERS[uid] = {
         sprite: sprite,
         targetX: data.x,
-        targetY: data.y
+        targetY: data.y,
+        lastChatTime: 0
     };
 
     // Add to Entity Layer
-    // We prefer a cleaner way, but for MVP:
-    // Try to find the sortable container
-    const entityLayer = worldContainer.children.find(c => c.sortableChildren === true);
-    if (entityLayer) entityLayer.addChild(sprite);
-
-    // Add Name Tag
-    const nameText = new PIXI.Text(data.name, {
-        fontSize: 12,
-        fill: 0xffffff,
-        stroke: 0x000000,
-        strokeThickness: 2
-    });
-    nameText.anchor.set(0.5, 1);
-    nameText.y = -35; // Above head
-    sprite.addChild(nameText);
+    const entityLayer = worldContainer.getChildByName("entityLayer");
+    if (entityLayer) {
+        entityLayer.addChild(sprite);
+    } else {
+        // Fallback if layer not named or found
+        worldContainer.addChild(sprite);
+    }
 }
 
 function remoteLoop(delta) {

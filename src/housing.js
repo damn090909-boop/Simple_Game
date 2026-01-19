@@ -1,162 +1,263 @@
-import { app, worldContainer, TILE_SIZE, mapData } from "./engine.js";
+// src/housing.js
+import * as PIXI from "https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.mjs";
+import { app, worldContainer, mapData, TILE_SIZE, mySprite, entityLayer, backgroundLayer } from "./engine.js";
 import { Assets } from "./loader.js";
-import { db, ref, push, onValue, set, update, child } from "./config.js";
-import { currentUser } from "./auth.js";
+import { db, ref, set, push, onValue, update, get, child } from "./config.js";
+import { PortalSystem } from "./portal.js";
 
-let buildMode = false;
-let ghostSprite = null;
-let currentBuildingType = "house_red"; // MVP fixed
+export class HousingSystem {
+    constructor(portalSystem) {
+        this.portalSystem = portalSystem;
+        this.buildings = {}; // { id: { x, y, owner, type, sprite } }
+        this.isBuildMode = false;
+        this.ghostSprite = null;
 
-const BUILDINGS = {}; // { id: sprite }
+        // Listen for buildings
+        this.initBuildings();
+    }
 
-export function initHousing() {
-    // Listen to Buildings
-    const buildingsRef = ref(db, "world/buildings");
-    onValue(buildingsRef, (snapshot) => {
-        const data = snapshot.val() || {};
-
-        // Render from data
-        Object.entries(data).forEach(([id, b]) => {
-            if (!BUILDINGS[id]) {
-                spawnBuilding(id, b);
+    initBuildings() {
+        const buildingsRef = ref(db, "world/buildings");
+        onValue(buildingsRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            // Clear existing logic if needed or just add new
+            // For simplicity, just add new ones or update
+            for (const [id, bData] of Object.entries(data)) {
+                if (!this.buildings[id]) {
+                    this.createBuilding(id, bData);
+                }
             }
         });
+    }
 
-        // Handle removals (omitted for MVP brevity, but same logic as players)
-    });
+    createBuilding(id, data) {
+        // data: { x, y, owner, type }
+        // 3x3 Building
+        // Visual: Just a placeholder rect or sprite for now.
+        // Assuming we have a house asset or use colors.
 
-    // Add Build Button to HUD (Programmatically for MVP)
-    const hud = document.querySelector("#game-hud .bottom-bar");
-    const buildBtn = document.createElement("button");
-    buildBtn.className = "hud-btn";
-    buildBtn.innerText = "🔨";
-    buildBtn.onclick = toggleBuildMode;
-    hud.insertBefore(buildBtn, hud.firstElementChild); // Add to left
-}
+        const container = new PIXI.Container();
+        container.x = data.x * TILE_SIZE;
+        container.y = data.y * TILE_SIZE;
 
-function toggleBuildMode(e) {
-    if (e) e.stopPropagation();
-    buildMode = !buildMode;
-    console.log("Build Mode:", buildMode);
+        // Main House Body (3x3)
+        // Tint based on owner for now or fixed texture
+        const texture = Assets.textures.house_1 || PIXI.Texture.WHITE; // Use house_1 if exists, else WHITE
+        const sprite = new PIXI.Sprite(texture);
+        sprite.width = 3 * TILE_SIZE;
+        sprite.height = 3 * TILE_SIZE;
 
-    if (buildMode) {
-        if (!ghostSprite) {
-            ghostSprite = new PIXI.Sprite(Assets.textures.building_house_01);
-            ghostSprite.alpha = 0.5;
-            ghostSprite.zIndex = 9999;
-            worldContainer.addChild(ghostSprite);
+        if (texture === PIXI.Texture.WHITE) {
+            sprite.tint = 0x8B4513; // Brown fallback
         }
-        ghostSprite.visible = true;
 
-        // Follow Cursor Logic attach
-        app.stage.on("pointermove", moveGhost);
-        app.stage.on("pointerdown", placeBuilding);
+        container.addChild(sprite);
 
-    } else {
-        if (ghostSprite) ghostSprite.visible = false;
-        app.stage.off("pointermove", moveGhost);
-        app.stage.off("pointerdown", placeBuilding);
-    }
-}
+        // Door (Portal) at (1, 2) local grid -> center bottom
+        // Visual door
+        const door = new PIXI.Sprite(PIXI.Texture.WHITE);
+        door.width = TILE_SIZE;
+        door.height = TILE_SIZE;
+        door.tint = 0x000000;
+        door.x = 1 * TILE_SIZE;
+        door.y = 2 * TILE_SIZE;
+        container.addChild(door);
 
-function moveGhost(e) {
-    if (!buildMode || !ghostSprite) return;
+        // Add to World
+        // Building should be in background or entity? 
+        // Entity layer is sorted by Y. Background is tiles.
+        // House is big. Let's put in entity layer but make sure Z sort works.
+        // Pivot needs to be bottom center for Z sort?
+        // Let's keep top-left anchor for grid alignment simplicity, 
+        // but set zIndex to bottom Y.
 
-    const worldX = (e.global.x - worldContainer.x) / worldContainer.scale.x;
-    const worldY = (e.global.y - worldContainer.y) / worldContainer.scale.y;
+        container.zIndex = (data.y + 3) * TILE_SIZE; // Sort by bottom
+        entityLayer.addChild(container);
 
-    // Snap to Grid (3x3 origin top-left)
-    const gridX = Math.floor(worldX / TILE_SIZE);
-    const gridY = Math.floor(worldY / TILE_SIZE);
+        this.buildings[id] = { ...data, sprite: container };
 
-    ghostSprite.x = gridX * TILE_SIZE;
-    ghostSprite.y = gridY * TILE_SIZE;
-
-    // Validation Color
-    const valid = isValidPlacement(gridX, gridY, 3, 3);
-    ghostSprite.tint = valid ? 0xFFFFFF : 0xFF0000;
-}
-
-function isValidPlacement(x, y, w, h) {
-    // Check Bounds
-    if (x < 0 || y < 0 || x + w > 20 || y + h > 20) return false;
-
-    // Check Collision (mapData block)
-    for (let i = 0; i < w; i++) {
-        for (let j = 0; j < h; j++) {
-            if (mapData[y + j][x + i] === 1) return false;
-        }
-    }
-
-    // Check Existing Buildings? (mapData should include them, but if not synced to local mapData yet...)
-    // For MVP, we assume mapData is updated when building spawns.
-    return true;
-}
-
-function placeBuilding(e) {
-    if (!buildMode) return;
-    e.stopPropagation(); // Prevent move tap
-
-    const worldX = (e.global.x - worldContainer.x) / worldContainer.scale.x;
-    const worldY = (e.global.y - worldContainer.y) / worldContainer.scale.y;
-    const gridX = Math.floor(worldX / TILE_SIZE);
-    const gridY = Math.floor(worldY / TILE_SIZE);
-
-    if (isValidPlacement(gridX, gridY, 3, 3)) {
-        // Build!
-        const newBuild = {
-            type: "house_red",
-            x: gridX * TILE_SIZE,
-            y: gridY * TILE_SIZE,
-            owner: currentUser.uid,
-            interiorID: `room_${currentUser.uid}_01`, // unique ID
-            timestamp: Date.now()
-        };
-
-        push(ref(db, "world/buildings"), newBuild);
-
-        toggleBuildMode(); // Exit mode
-    }
-}
-
-function spawnBuilding(id, data) {
-    // 1. Create Sprite
-    const sprite = new PIXI.Sprite(Assets.textures.building_house_01);
-    sprite.x = data.x;
-    sprite.y = data.y;
-    sprite.anchor.set(0, 1.0); // Anchor bottom-left? No 3x3 image usually uses top-left origin but for Sort...
-    // Project.txt says: anchor.y = 1.0. 
-    // Image is 144x144. If we set x,y to Top-Left Grid, but anchor is bottom...
-    // Top-Left Grid (gx, gy). Pixel (gx*48, gy*48).
-    // If sprite is 3 tiles high, it covers y, y+1, y+2.
-    // Bottom Y is (gy+3)*48.
-    // If we use anchor (0, 1), we should set sprite.y = (gy+3)*48.
-
-    // Let's adjust coordinate logic
-    const gridY = data.y / TILE_SIZE;
-    sprite.y = (gridY + 3) * TILE_SIZE; // Bottom of the building area
-    sprite.zIndex = sprite.y; // Sort by bottom
-
-    // Add to Entity Layer (sorted)
-    // Find entity layer
-    const entityLayer = worldContainer.children.find(c => c.sortableChildren);
-    entityLayer.addChild(sprite);
-    BUILDINGS[id] = sprite;
-
-    // 2. Update Collision (Block 3x3)
-    const gridX = data.x / TILE_SIZE;
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            // Door Logic: (x+1, y+2) is door. Don't block? Or special block?
-            // Spec says "Door Offset: (x+1, y+2)".
-            // For MVP, block all, Portal handles door tap on 'Blocked' tile?
-            // Actually A* fails if blocked.
-            // Let's mark Door as 2 (Portal).
-            if (i === 1 && j === 2) {
-                mapData[gridY + j][gridX + i] = 2; // Portal
-            } else {
-                mapData[gridY + j][gridX + i] = 1; // Block
+        // Collision Update (Mark 3x3 as wall)
+        for (let dy = 0; dy < 3; dy++) {
+            for (let dx = 0; dx < 3; dx++) {
+                const mx = data.x + dx;
+                const my = data.y + dy;
+                // Don't mark Door as wall so we can tap it? 
+                // Or mark as wall but handle tap differently.
+                // Section F: 66 says update collision to 1.
+                // Section F: 67 says Tap Door -> Enter.
+                // If it's 1, pathfinding won't go there. That's fine.
+                // We just need tap detection.
+                if (mapData[my] && mapData[my][mx] !== undefined) {
+                    mapData[my][mx] = 1;
+                }
             }
         }
+
+        // Portal Registration
+        // Door is at global (data.x + 1, data.y + 2)
+        this.portalSystem.registerPortal(data.x + 1, data.y + 2, id);
+    }
+
+    reapplyCollisions() {
+        if (!mapData) return;
+        for (const [id, data] of Object.entries(this.buildings)) {
+            for (let dy = 0; dy < 3; dy++) {
+                for (let dx = 0; dx < 3; dx++) {
+                    const mx = data.x + dx;
+                    const my = data.y + dy;
+                    if (mapData[my] && mapData[my][mx] !== undefined) {
+                        mapData[my][mx] = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    reapplyCollisions() {
+        if (!mapData) return;
+        for (const [id, data] of Object.entries(this.buildings)) {
+            for (let dy = 0; dy < 3; dy++) {
+                for (let dx = 0; dx < 3; dx++) {
+                    const mx = data.x + dx;
+                    const my = data.y + dy;
+                    if (mapData[my] && mapData[my][mx] !== undefined) {
+                        mapData[my][mx] = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    async startBuildMode() {
+        // Cost Check
+        if (window.currentUser) {
+            const uid = window.currentUser.uid;
+            // Check Gold (500)
+            const goldSnap = await get(ref(db, `players/${uid}/wallet/gold`));
+            const gold = goldSnap.val() || 0;
+
+            if (gold < 500) {
+                alert("Not enough Gold! Need 500 G to build.");
+                return;
+            }
+            // Check Materials (Project.txt 80 says "resource/material shortage check")
+            // Let's assume Wood 10, Stone 10
+            const woodSnap = await get(ref(db, `players/${uid}/inventory/wood`));
+            const stoneSnap = await get(ref(db, `players/${uid}/inventory/stone`));
+            const wood = woodSnap.val() || 0;
+            const stone = stoneSnap.val() || 0;
+
+            if (wood < 10 || stone < 10) {
+                alert(`Not enough Materials! Need 10 Wood, 10 Stone. (You have: ${wood} W, ${stone} S)`);
+                return;
+            }
+        }
+
+        this.isBuildMode = true;
+        // Create Ghost
+        this.ghostSprite = new PIXI.Graphics();
+        this.ghostSprite.beginFill(0x00FF00, 0.5);
+        this.ghostSprite.drawRect(0, 0, 3 * TILE_SIZE, 3 * TILE_SIZE);
+        this.ghostSprite.endFill();
+        this.ghostSprite.zIndex = 99999;
+        worldContainer.addChild(this.ghostSprite);
+
+        // Mouse Move Listener
+        app.stage.on("pointermove", this.onGhostMove.bind(this));
+        app.stage.on("pointerdown", this.onBuildClick.bind(this));
+
+        // Enable stage interaction if not already
+        app.stage.eventMode = 'static';
+        app.stage.hitArea = app.screen;
+    }
+
+    stopBuildMode() {
+        this.isBuildMode = false;
+        if (this.ghostSprite) {
+            this.ghostSprite.destroy();
+            this.ghostSprite = null;
+        }
+        app.stage.off("pointermove", this.onGhostMove.bind(this));
+        app.stage.off("pointerdown", this.onBuildClick.bind(this));
+    }
+
+    onGhostMove(e) {
+        if (!this.ghostSprite) return;
+        const globalPos = e.global;
+        const localPos = worldContainer.toLocal(globalPos);
+
+        // Snap to grid
+        const gx = Math.floor(localPos.x / TILE_SIZE);
+        const gy = Math.floor(localPos.y / TILE_SIZE);
+
+        this.ghostSprite.x = gx * TILE_SIZE;
+        this.ghostSprite.y = gy * TILE_SIZE;
+
+        // Check Valid
+        const isValid = this.isValidLocation(gx, gy);
+        this.ghostSprite.tint = isValid ? 0xFFFFFF : 0xFF0000;
+        this.ghostSprite.valid = isValid;
+        this.ghostSprite.gridX = gx;
+        this.ghostSprite.gridY = gy;
+    }
+
+    async onBuildClick(e) {
+        if (!this.isBuildMode || !this.ghostSprite) return;
+
+        // Check if we clicked on HUD or something handled elsewhere
+        // But for now assume stage click is build.
+
+        if (this.ghostSprite.valid) {
+            const gx = this.ghostSprite.gridX;
+            const gy = this.ghostSprite.gridY;
+
+            // Build!
+            const uid = window.currentUser.uid;
+            const newBuildingRef = push(ref(db, "world/buildings"));
+            await set(newBuildingRef, {
+                x: gx,
+                y: gy,
+                owner: uid,
+                type: "house_1"
+            });
+
+            // Deduct Cost
+            // We should do this transactionally ideally, but simple sequential update for now
+            const walletRef = ref(db, `players/${uid}/wallet`);
+            const invRef = ref(db, `players/${uid}/inventory`);
+
+            // Re-fetch to be safe or just decrement assuming single threaded client logic mostly
+            // Better: Transaction
+            // But simple update:
+            const goldSnap = await get(child(walletRef, 'gold'));
+            const woodSnap = await get(child(invRef, 'wood'));
+            const stoneSnap = await get(child(invRef, 'stone'));
+
+            update(walletRef, { gold: (goldSnap.val() || 0) - 500 });
+            update(invRef, {
+                wood: (woodSnap.val() || 0) - 10,
+                stone: (stoneSnap.val() || 0) - 10
+            });
+            alert("Building Constructed! (-500G, -10 Wood, -10 Stone)");
+
+            this.stopBuildMode();
+        }
+    }
+
+    isValidLocation(x, y) {
+        // Check 3x3 bounds
+        for (let dy = 0; dy < 3; dy++) {
+            for (let dx = 0; dx < 3; dx++) {
+                const mx = x + dx;
+                const my = y + dy;
+
+                // Map Bounds
+                if (my < 0 || my >= mapData.length || mx < 0 || mx >= mapData[0].length) return false;
+
+                // Collision (Wall or other building)
+                if (mapData[my][mx] === 1) return false;
+            }
+        }
+        return true;
     }
 }

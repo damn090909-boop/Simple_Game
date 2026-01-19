@@ -6,8 +6,9 @@ import { Assets } from "./loader.js";
 let onEnterGame = null;
 let currentUser = initialCurrentUser; // Make currentUser a mutable variable in this scope
 
-export async function initLobby(user) {
+export async function initLobby(user, onGameStart) {
     currentUser = user;
+    onEnterGame = onGameStart; // Store callback
     const lobbyScreen = document.getElementById("lobby-screen");
     lobbyScreen.classList.remove("hidden");
     lobbyScreen.classList.add("active");
@@ -209,7 +210,6 @@ function createSlotElement(charData) {
     return slot;
 }
 
-// --- Character Creator ---
 // --- Character Creator ---
 function openCreatorModal() {
     const modal = document.getElementById("creator-modal");

@@ -1,118 +1,102 @@
-import { app, worldContainer, TILE_SIZE, entityLayer } from "./engine.js";
-import { currentUser } from "./auth.js";
-import { update, ref, push, child } from "./config.js";
-import { db } from "./config.js";
-import { updateMyPosition } from "./network.js"; // If needed
+// src/ui.js - C-1. Game UI & HUD
+import { sendChat } from "./network.js";
 
-let chatInputVisible = false;
+export function initHUD() {
+    const hudContainer = document.getElementById("game-hud");
 
-export function initUI() {
-    // 1. HUD Init
-    document.getElementById("chat-toggle-btn").onclick = toggleChatInput;
-    document.getElementById("chat-send").onclick = sendChatMessage;
-    document.getElementById("chat-input").addEventListener("keypress", (e) => {
-        if (e.key === "Enter") sendChatMessage();
-    });
+    // Check if buttons already exist to prevent duplicates
+    if (document.getElementById("menu-btn")) {
+        // Just re-attach listeners if needed, or assume they are fine.
+        // But we need to attach chat listeners if not already.
+        // Let's assume initHUD is called once per session usually.
+        return;
+    }
 
-    // 2. Chat Bubbles Listener
-    // We listen to `messages` node? Or `users/{uid}/chat`?
-    // Project.txt says: "Sync logic: Chat data... via users/{ID}/chat node"
-    // Actually, widespread chat usually goes to a shared node or we listen to all users.
-    // Let's listen to specific `world/chat` or just handle local bubble for now?
-    // Project.txt: "Sync: Chat data also via users/{ID}/chat node"
-    // So each user has a 'latest message'.
+    // 1. Menu Button [ ☰ ] (Top-Left) - Item 25
+    const menuBtn = createButton("menu-btn", "☰", "hud-btn top-left");
+    hudContainer.appendChild(menuBtn);
 
-    // We already listen to 'players' in network.js
-    // Let's add chat handling there or here? 
-    // Ideally Network handles data, UI handles display.
-    // We need a function `showChatBubble(uid, msg)` exported for network.js to use.
+    // 2. Friends Button [ 👥 ] (Top-Right) - Item 26
+    const friendBtn = createButton("friend-btn", "👥", "hud-btn top-right-1");
+    hudContainer.appendChild(friendBtn);
+
+    // 3. Zoom Button [ 🔍 ] (Top-Right) - Item 26
+    const zoomBtn = createButton("zoom-btn", "🔍", "hud-btn top-right-2");
+    hudContainer.appendChild(zoomBtn);
+
+    // 4. Inventory Button [ 🎒 ] (Bottom-Left) - Item 27
+    const invBtn = createButton("inv-btn", "🎒", "hud-btn bottom-left-1");
+    hudContainer.appendChild(invBtn);
+
+    // 5. Chat Toggle [ 💬 ] (Bottom-Left) - Item 28
+    const chatBtn = createButton("chat-btn", "💬", "hud-btn bottom-left-2");
+    hudContainer.appendChild(chatBtn);
+
+    // Event Listeners
+    menuBtn.onclick = () => console.log("Menu clicked");
+    friendBtn.onclick = () => console.log("Friends clicked");
+    zoomBtn.onclick = () => console.log("Zoom clicked");
+    invBtn.onclick = () => console.log("Inventory clicked");
+
+    // Chat Toggle Logic (Item 30)
+    chatBtn.onclick = (e) => {
+        e.stopPropagation();
+        toggleChat();
+    };
+
+    initChatLogic();
 }
 
-function toggleChatInput() {
-    chatInputVisible = !chatInputVisible;
-    const bar = document.getElementById("chat-bar");
-    const input = document.getElementById("chat-input");
+function createButton(id, emoji, classes) {
+    const btn = document.createElement("button");
+    btn.id = id;
+    btn.textContent = emoji;
+    btn.className = classes;
+    return btn;
+}
 
-    if (chatInputVisible) {
-        bar.classList.add("visible");
-        input.focus();
-        // Keyboard slide up logic is handled by browser/CSS (interactive-widget)
+// --- Chat Interface Logic ---
+function toggleChat(forceState) {
+    const chatContainer = document.getElementById("chat-input-container");
+    const isHidden = chatContainer.classList.contains("hidden");
+    const shouldShow = forceState !== undefined ? forceState : isHidden;
+
+    if (shouldShow) {
+        chatContainer.classList.remove("hidden");
+        document.getElementById("chat-input").focus();
     } else {
-        bar.classList.remove("visible");
-        input.blur();
+        chatContainer.classList.add("hidden");
+        document.getElementById("chat-input").blur();
     }
 }
 
-async function sendChatMessage() {
-    const input = document.getElementById("chat-input");
-    const msg = input.value.trim();
-    if (!msg) return;
+function initChatLogic() {
+    const chatContainer = document.getElementById("chat-input-container");
+    const chatInput = document.getElementById("chat-input");
+    const chatSend = document.getElementById("chat-send-btn");
 
-    if (!currentUser) return;
-
-    // 1. Send to Firebase (Update my state)
-    // We can use a 'chat' field in player state that network listeners pick up
-    // Or a persistent chat log.
-    // Spec says: "Bubble... 5 seconds fade out". Ephemeral is fine.
-
-    update(ref(db, `players/${currentUser.uid}`), {
-        chat: msg,
-        chatTime: Date.now()
-    });
-
-    // 2. Clear Input
-    input.value = "";
-    toggleChatInput(); // Hide after send
-}
-
-export function showChatBubble(sprite, text) {
-    if (!sprite) return;
-
-    // Remove existing bubble
-    const existing = sprite.children.find(c => c.name === "chatBubble");
-    if (existing) sprite.removeChild(existing);
-
-    const bubble = new PIXI.Container();
-    bubble.name = "chatBubble";
-    bubble.y = -60; // Above Name Tag
-
-    // Background
-    const bg = new PIXI.Graphics();
-    bg.beginFill(0xFFFFFF);
-    bg.lineStyle(2, 0x000000);
-    bg.drawRoundedRect(0, 0, 100, 40, 10); // temporary size
-    bg.endFill();
-
-    // Text
-    const style = new PIXI.TextStyle({
-        fontFamily: "Arial",
-        fontSize: 14,
-        fill: "black",
-        wordWrap: true,
-        wordWrapWidth: 140
-    });
-    const textObj = new PIXI.Text(text, style);
-    textObj.anchor.set(0.5, 0.5);
-
-    // Resize bg to text
-    const w = textObj.width + 20;
-    const h = textObj.height + 10;
-    bg.clear();
-    bg.beginFill(0xFFFFFF);
-    bg.lineStyle(2, 0x000000);
-    bg.drawRoundedRect(-w / 2, -h / 2, w, h, 10);
-    bg.endFill();
-
-    bubble.addChild(bg);
-    bubble.addChild(textObj);
-
-    sprite.addChild(bubble);
-
-    // Auto Destroy
-    setTimeout(() => {
-        if (sprite && !sprite.destroyed) {
-            sprite.removeChild(bubble);
-            bubble.destroy();
+    // Send Message
+    const submitChat = () => {
+        const text = chatInput.value.trim();
+        if (text) {
+            sendChat(text);
+            chatInput.value = "";
+            toggleChat(false); // Hide on send
         }
-    }, 5000);
+    };
+
+    chatSend.onclick = submitChat;
+    chatInput.onkeydown = (e) => {
+        if (e.key === "Enter") submitChat();
+    };
+
+    // Close on background click
+    document.addEventListener("pointerdown", (e) => {
+        if (!chatContainer.classList.contains("hidden")) {
+            // If click is NOT on chat container and NOT on chat toggle button
+            if (!chatContainer.contains(e.target) && e.target.id !== "chat-btn") {
+                toggleChat(false);
+            }
+        }
+    });
 }

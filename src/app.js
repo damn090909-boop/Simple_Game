@@ -1,7 +1,7 @@
 import { initLoader } from "./loader.js?v=2";
 import { initAuth } from "./auth.js";
 import { initLobby } from "./lobby.js";
-// import { initGame } from "./engine.js"; // Will be created next
+import { initGame } from "./engine.js";
 
 async function startApp() {
     console.log("Starting App...");
@@ -20,8 +20,11 @@ async function startApp() {
     initAuth((user) => {
         console.log("Logged in as:", user.name);
 
-        // 3. Init Lobby - Pass user object directly
-        initLobby(user);
+        // 3. Init Lobby - Pass user object and Game Start Callback
+        initLobby(user, (charData) => {
+            // 4. Start Game (Async)
+            initGame(user, charData).catch(err => console.error("Game Start Error:", err));
+        });
     });
 }
 

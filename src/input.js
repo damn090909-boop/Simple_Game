@@ -4,73 +4,167 @@ import { findPath } from "./pathfinder.js";
 import { updateMyPosition } from "./network.js"; // Will be created
 import { centerOn } from "./camera.js";
 
-// Visual Marker
-let targetMarker = null;
+// Joystick State
+let joystickParams = {
+    active: false,
+    originX: 0,
+    originY: 0,
+    currentX: 0,
+    currentY: 0,
+    vectorX: 0,
+    vectorY: 0,
+    id: null, // Touch ID
+    startTime: 0 // For tap detection
+};
 
-export function initInput(localPlayer, onMoveStart) {
-    // Create Target Marker
-    targetMarker = new PIXI.Graphics();
-    targetMarker.lineStyle(2, 0xFFFFFF, 1);
-    targetMarker.drawCircle(0, 0, 10);
-    targetMarker.visible = false;
-    worldContainer.addChild(targetMarker);
+let joystickBase, joystickKnob;
+let onTapCallback = null; // Callback for taps
 
-    // Tap event on stage? Or Interactive background?
-    // Since World moves, we should listen on app.stage or a full-screen background hitarea.
-    // Let's use app.stage event (hitArea needed)
-    app.stage.eventMode = 'static';
-    app.stage.hitArea = app.screen;
+export function initInput(localPlayer, onMoveStart, onTap) {
+    onTapCallback = onTap; // Set callback
 
-    app.stage.on('pointerdown', (e) => {
-        // e.global is screen coordinate
-        // Convert to World Coordinate
-        // World is scaled and translated.
-        // localPos = (screen - worldPos) / scale
+    // 1. Create Joystick UI Elements
+    const zone = document.createElement("div");
+    zone.id = "joystick-zone";
+    document.body.appendChild(zone); // attach to body to cover full screen
 
-        const worldX = (e.global.x - worldContainer.x) / worldContainer.scale.x;
-        const worldY = (e.global.y - worldContainer.y) / worldContainer.scale.y;
+    joystickBase = document.createElement("div");
+    joystickBase.className = "joystick-base";
+    zone.appendChild(joystickBase);
 
-        const gridX = Math.floor(worldX / TILE_SIZE);
-        const gridY = Math.floor(worldY / TILE_SIZE);
+    joystickKnob = document.createElement("div");
+    joystickKnob.className = "joystick-knob";
+    joystickBase.appendChild(joystickKnob);
 
-        console.log("Tap Grid:", gridX, gridY);
+    // 2. Touch Events
+    zone.addEventListener("touchstart", onTouchStart, { passive: false });
+    zone.addEventListener("touchmove", onTouchMove, { passive: false });
+    zone.addEventListener("touchend", onTouchEnd, { passive: false });
+    zone.addEventListener("touchcancel", onTouchEnd, { passive: false });
 
-        // Show Marker
-        targetMarker.x = gridX * TILE_SIZE + TILE_SIZE / 2;
-        targetMarker.y = gridY * TILE_SIZE + TILE_SIZE / 2;
-        targetMarker.visible = true;
-        targetMarker.alpha = 1;
+    // 3. Mouse Fallback (for testing on desktop without touch simulation)
+    // Optional, but good for verification.
+    zone.addEventListener("mousedown", onMouseDown);
+}
 
-        // Animate Marker (Simple fade)
-        // We'll trust ticker or CSS anim? Pixi ticker cleaner.
-        // For MVP, just leave it or quick fade.
+// Get Input Vector for Engine
+export function getInputVector() {
+    if (!joystickParams.active) return null;
+    return { x: joystickParams.vectorX, y: joystickParams.vectorY };
+}
 
-        // Pathfinding
-        const startX = Math.floor((localPlayer.x - 24) / TILE_SIZE); // approx center
-        const startY = Math.floor((localPlayer.y - 48) / TILE_SIZE); // feet
+function onTouchStart(e) {
+    e.preventDefault();
+    // Only track first touch if not active
+    if (joystickParams.active) return;
 
-        // Fix coordinates logic:
-        // Player is Anchor(0.5, 1.0). x is center, y is bottom.
-        // Tile X: Math.floor(player.x / TILE_SIZE)
-        // Tile Y: Math.floor((player.y - 1) / TILE_SIZE) -> since y is bottom boundary
+    const touch = e.changedTouches[0];
+    joystickParams.id = touch.identifier;
+    startJoystick(touch.clientX, touch.clientY);
+}
 
-        const pGridX = Math.floor(localPlayer.x / TILE_SIZE);
-        const pGridY = Math.floor((localPlayer.y - 1) / TILE_SIZE);
+function onTouchMove(e) {
+    e.preventDefault();
+    if (!joystickParams.active) return;
 
-        const path = findPath(pGridX, pGridY, gridX, gridY);
-        if (path && path.length > 0) {
-            console.log("Path found:", path.length);
-            onMoveStart(path);
-        } else {
-            // console.log("Blocked or No path");
-            // Highlight red?
-            targetMarker.tint = 0xFF0000;
-            setTimeout(() => targetMarker.tint = 0xFFFFFF, 500);
+    // Find our touch
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joystickParams.id) {
+            moveJoystick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+            break;
         }
-    });
+    }
+}
 
-    // Handle resizing hitarea
-    window.addEventListener('resize', () => {
-        app.stage.hitArea = app.screen;
-    });
+function onTouchEnd(e) {
+    e.preventDefault();
+    if (!joystickParams.active) return;
+
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joystickParams.id) {
+            endJoystick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+            break;
+        }
+    }
+}
+
+// Mouse Handlers
+function onMouseDown(e) {
+    e.preventDefault();
+    startJoystick(e.clientX, e.clientY);
+
+    const onMouseMove = (ev) => {
+        ev.preventDefault();
+        moveJoystick(ev.clientX, ev.clientY);
+    };
+
+    const onMouseUp = (ev) => {
+        ev.preventDefault();
+        endJoystick(ev.clientX, ev.clientY);
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove, { passive: false });
+    document.addEventListener("mouseup", onMouseUp, { passive: false });
+}
+
+// Logic
+function startJoystick(x, y) {
+    joystickParams.active = true;
+    joystickParams.originX = x;
+    joystickParams.originY = y;
+    joystickParams.currentX = x;
+    joystickParams.currentY = y;
+    joystickParams.vectorX = 0;
+    joystickParams.vectorY = 0;
+    joystickParams.startTime = Date.now();
+
+    // Show Visuals
+    joystickBase.classList.add("active");
+    joystickBase.style.left = x + "px";
+    joystickBase.style.top = y + "px";
+    joystickKnob.style.transform = `translate(-50%, -50%)`;
+}
+
+function moveJoystick(x, y) {
+    joystickParams.currentX = x;
+    joystickParams.currentY = y;
+
+    const maxRadius = 60; // Half of base width (120px)
+    let dx = x - joystickParams.originX;
+    let dy = y - joystickParams.originY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Normalize
+    if (dist > maxRadius) {
+        const ratio = maxRadius / dist;
+        dx *= ratio;
+        dy *= ratio;
+    }
+
+    // Move Knob
+    joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+    joystickParams.vectorX = dx / maxRadius;
+    joystickParams.vectorY = dy / maxRadius;
+}
+
+function endJoystick(endX = 0, endY = 0) {
+    joystickParams.active = false;
+    joystickParams.vectorX = 0;
+    joystickParams.vectorY = 0;
+    joystickBase.classList.remove("active");
+
+    // Tap Detection
+    const duration = Date.now() - joystickParams.startTime;
+    const dx = endX - joystickParams.originX;
+    const dy = endY - joystickParams.originY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // If quick and short movement, it's a Tap
+    if (duration < 300 && dist < 10 && onTapCallback) {
+        // We pass the screen coordinates of the tap
+        onTapCallback(joystickParams.originX, joystickParams.originY);
+    }
 }
