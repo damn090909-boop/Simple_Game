@@ -217,12 +217,28 @@ function openCreatorModal() {
 
     // Click outside to close (Item 14) - Use overlay for clear click detection
     const overlay = modal.querySelector(".modal-overlay");
+    console.log("Overlay element:", overlay); // Debug
+
     if (overlay) {
         overlay.onclick = () => {
+            console.log("✅ OVERLAY CLICKED - Closing modal");
             modal.classList.add("hidden");
             const modalContent = modal.querySelector(".modal-content");
             if (modalContent) modalContent.innerHTML = "";
         };
+
+        // Also add touch event for mobile
+        overlay.ontouchend = (e) => {
+            e.preventDefault();
+            console.log("✅ OVERLAY TOUCHED - Closing modal");
+            modal.classList.add("hidden");
+            const modalContent = modal.querySelector(".modal-content");
+            if (modalContent) modalContent.innerHTML = "";
+        };
+
+        console.log("Overlay click handler attached"); // Debug
+    } else {
+        console.error("❌ OVERLAY NOT FOUND!");
     }
 
     // Character state
