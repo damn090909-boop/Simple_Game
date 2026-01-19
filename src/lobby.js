@@ -129,8 +129,9 @@ function createSlotElement(charData) {
         delBtn.textContent = "캐릭터삭제";
         delBtn.className = "slot-btn delete-btn";
         delBtn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            // e.preventDefault(); // Removed as it might block native confirm on some mobile browsers
+            e.stopPropagation(); // Keep this to prevent slot selection
+            // Small delay to ensure event bubbling is clean
             setTimeout(() => {
                 if (confirm("Delete this character?")) deleteCharacter(charData.id);
             }, 50);
