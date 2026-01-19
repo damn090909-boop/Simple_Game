@@ -63,63 +63,14 @@ function createSlotElement(charData) {
         if (!charData) openCreatorModal();
     };
 
-    // Common style for 50/50 split
+    // Common style
     slot.style.display = "flex";
     slot.style.flexDirection = "row";
-    slot.style.alignItems = "stretch";
     slot.style.padding = "10px";
 
-    // --- Left Half (50%) : Buttons (Filled) / Info (Empty) ---
+    // --- Left Half (50%) : Portrait ---
     const leftCol = document.createElement("div");
     leftCol.className = "slot-left";
-
-    if (charData) {
-        slot.classList.add("filled");
-
-        // Buttons Container (Full Fill)
-        const btnContainer = document.createElement("div");
-        btnContainer.className = "slot-action-buttons";
-
-        // Connect Button (Top or First) -> "Start Adventure"
-        const enterBtn = document.createElement("button");
-        enterBtn.textContent = "모험시작";
-        enterBtn.className = "slot-btn play-btn full-width";
-        enterBtn.onclick = (e) => {
-            e.stopPropagation();
-            enterGame(charData);
-        };
-
-        // Delete Button -> "Delete Character"
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "캐릭터삭제";
-        delBtn.className = "slot-btn delete-btn full-width";
-        delBtn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Delay confirm to prevent immediate dismissal by browser UI event quirks
-            setTimeout(() => {
-                if (confirm("Delete this character?")) deleteCharacter(charData.id);
-            }, 50);
-        };
-
-        btnContainer.appendChild(enterBtn);
-        btnContainer.appendChild(delBtn);
-        leftCol.appendChild(btnContainer);
-
-    } else {
-        slot.classList.add("empty");
-        // Empty Slot Left Side: "New Character" Text?
-        // User didn't specify text for Empty Left, but standard practice.
-        const info = document.createElement("div");
-        info.className = "empty-info";
-        info.innerHTML = "새로운<br>캐릭터";
-        leftCol.appendChild(info);
-    }
-    slot.appendChild(leftCol);
-
-    // --- Right Half (50%) : Portrait ---
-    const rightCol = document.createElement("div");
-    rightCol.className = "slot-right";
 
     const previewBox = document.createElement("div");
     previewBox.className = "char-preview-box";
@@ -128,16 +79,11 @@ function createSlotElement(charData) {
     preview.className = "char-preview";
 
     if (charData) {
+        slot.classList.add("filled");
         preview.textContent = "🧙‍♂️";
         preview.style.filter = "none";
-
-        // Name Overlay at bottom
-        const nameOverlay = document.createElement("div");
-        nameOverlay.className = "char-name-overlay";
-        nameOverlay.textContent = charData.name;
-        previewBox.appendChild(nameOverlay);
-
     } else {
+        slot.classList.add("empty");
         preview.textContent = "👤";
         preview.style.filter = "brightness(0) grayscale(100%)";
         preview.style.opacity = "0.7";
@@ -150,7 +96,67 @@ function createSlotElement(charData) {
     }
 
     previewBox.appendChild(preview);
-    rightCol.appendChild(previewBox);
+    leftCol.appendChild(previewBox);
+    slot.appendChild(leftCol);
+
+    // --- Right Half (50%) : Info + Buttons ---
+    const rightCol = document.createElement("div");
+    rightCol.className = "slot-right";
+
+    if (charData) {
+        // 1. Top Info: Name & Spec
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "char-info-block";
+
+        const nameDisplay = document.createElement("div");
+        nameDisplay.className = "char-name";
+        nameDisplay.textContent = charData.name;
+
+        const infoDisplay = document.createElement("div");
+        infoDisplay.className = "char-details";
+        infoDisplay.innerHTML = `Lv. ${charData.level || 1}<br>Map: Town`;
+
+        infoDiv.appendChild(nameDisplay);
+        infoDiv.appendChild(infoDisplay);
+        rightCol.appendChild(infoDiv);
+
+        // 2. Bottom Buttons: Row, Side-by-Side
+        const btnRow = document.createElement("div");
+        btnRow.className = "slot-buttons-row";
+
+        // Delete Button
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "캐릭터삭제";
+        delBtn.className = "slot-btn delete-btn";
+        delBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setTimeout(() => {
+                if (confirm("Delete this character?")) deleteCharacter(charData.id);
+            }, 50);
+        };
+
+        // Connect Button
+        const enterBtn = document.createElement("button");
+        enterBtn.textContent = "모험시작";
+        enterBtn.className = "slot-btn play-btn";
+        enterBtn.onclick = (e) => {
+            e.stopPropagation();
+            enterGame(charData);
+        };
+
+        btnRow.appendChild(delBtn);
+        btnRow.appendChild(enterBtn);
+        rightCol.appendChild(btnRow);
+
+    } else {
+        // Empty Slot Right Side
+        const emptyInfo = document.createElement("div");
+        emptyInfo.className = "empty-info-right";
+        emptyInfo.innerHTML = "새로운 캐릭터<br>생성하기";
+        rightCol.appendChild(emptyInfo);
+    }
+
     slot.appendChild(rightCol);
 
     return slot;
@@ -165,11 +171,7 @@ function openCreatorModal() {
     const previewArea = document.getElementById("creator-preview");
     previewArea.innerHTML = ""; // Clear
 
-    // We would render a Pixi app here for preview, 
-    // but for MVP DOM-based construction let's just use simple config
-    // Actually, Project.txt says "Character Creator Modal" with body/hair/color.
-
-    // Let's create simple dropdowns/buttons dynamically since HTML was minimal
+    // Let's create simple dropdowns/buttons dynamically 
     const controls = document.querySelector("#creator-modal .controls");
     controls.innerHTML = `
         <label>Name: <input type="text" id="new-char-name" value="Hero"></label><br>
@@ -178,7 +180,7 @@ function openCreatorModal() {
     `;
 
     const saveBtn = document.getElementById("save-char-btn");
-    // Remove old listeners to avoid dupes
+    // Remove old listeners
     const newBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newBtn, saveBtn);
 
