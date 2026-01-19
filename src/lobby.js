@@ -51,56 +51,29 @@ async function loadCharacters() {
 
 function createSlotElement(charData) {
     const slot = document.createElement("div");
-    /**
-     * Structure:
-     * .slot (Flex Row)
-     *   > .slot-left (Flex Col)
-     *      > .char-preview
-     *      > .slot-buttons (Flex Row) -> [Delete] [Connect]
-     *   > .slot-right (Flex Col)
-     *      > .char-info (Name, Stats)
-     */
     slot.className = "slot";
 
     if (charData) {
         slot.classList.add("filled");
+        // Enforce Column layout for filled slots to separate Content and Buttons rows
+        slot.style.flexDirection = "column";
+        slot.style.alignItems = "stretch"; // Full width
 
-        // Left Column
+        // --- Row 1: Content (Left: Portrait, Right: Info) ---
+        const contentRow = document.createElement("div");
+        contentRow.className = "slot-content-row";
+        contentRow.style.display = "flex";
+        contentRow.style.flexDirection = "row";
+        contentRow.style.flexGrow = "1";
+
+        // Left Column (Portrait)
         const leftCol = document.createElement("div");
         leftCol.className = "slot-left";
-
-        // Preview
         const preview = document.createElement("div");
         preview.className = "char-preview";
-        preview.textContent = "🧙‍♂️"; // Placeholder
+        preview.textContent = "🧙‍♂️";
         leftCol.appendChild(preview);
-
-        // Buttons Row (Horizontal)
-        const btnRow = document.createElement("div");
-        btnRow.className = "slot-buttons";
-
-        // Delete Button
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "🗑";
-        delBtn.className = "slot-btn delete-btn";
-        delBtn.onclick = (e) => {
-            e.stopPropagation();
-            if (confirm("Delete this character?")) deleteCharacter(charData.id);
-        };
-        btnRow.appendChild(delBtn);
-
-        // Connect Button
-        const enterBtn = document.createElement("button");
-        enterBtn.textContent = "PLAY";
-        enterBtn.className = "slot-btn play-btn";
-        enterBtn.onclick = (e) => {
-            e.stopPropagation();
-            enterGame(charData);
-        };
-        btnRow.appendChild(enterBtn);
-
-        leftCol.appendChild(btnRow);
-        slot.appendChild(leftCol);
+        contentRow.appendChild(leftCol);
 
         // Right Column (Info)
         const rightCol = document.createElement("div");
@@ -116,11 +89,41 @@ function createSlotElement(charData) {
         infoDisplay.innerHTML = `Lv. ${charData.level || 1}<br>Map: Town`;
         rightCol.appendChild(infoDisplay);
 
-        slot.appendChild(rightCol);
+        contentRow.appendChild(rightCol);
+        slot.appendChild(contentRow);
 
-        // Make whole slot clickable too? Maybe just buttons. 
-        // User said "Connect Button" specifically. 
-        // But for UX, clicking slot often selects. Let's keep specific buttons active.
+        // --- Row 2: Buttons (Bottom Side-by-Side) ---
+        const btnRow = document.createElement("div");
+        btnRow.className = "slot-buttons";
+        btnRow.style.display = "flex";
+        btnRow.style.marginTop = "10px"; // Spacing
+        btnRow.style.gap = "10px";
+
+        // Delete Button
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "🗑 DELETE";
+        delBtn.className = "slot-btn delete-btn";
+        delBtn.style.flexGrow = "1"; // Share width
+        delBtn.style.borderRadius = "8px";
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm("Delete this character?")) deleteCharacter(charData.id);
+        };
+        btnRow.appendChild(delBtn);
+
+        // Connect Button
+        const enterBtn = document.createElement("button");
+        enterBtn.textContent = "🎮 PLAY";
+        enterBtn.className = "slot-btn play-btn";
+        enterBtn.style.flexGrow = "2"; // Play button wider
+        enterBtn.style.borderRadius = "8px";
+        enterBtn.onclick = (e) => {
+            e.stopPropagation();
+            enterGame(charData);
+        };
+        btnRow.appendChild(enterBtn);
+
+        slot.appendChild(btnRow);
 
     } else {
         slot.classList.add("empty");
