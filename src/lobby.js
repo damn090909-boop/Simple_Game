@@ -250,18 +250,18 @@ function openCreatorModal() {
 
     // Setup Creator UI
     const modalContent = modal.querySelector(".modal-content");
-
-    // Prevent clicks inside modalContent from closing the modal (Item 14)
-    modalContent.onclick = (e) => {
-        e.stopPropagation();
-    };
-
-    modalContent.innerHTML = ""; // Clear
+    modalContent.innerHTML = ""; // Clear first
     modalContent.style.position = "relative";
     modalContent.style.width = "90%";
     modalContent.style.maxWidth = "500px";
     modalContent.style.height = "80vh";
     // Remove display:flex from here - will be handled by CSS
+
+    // Item 14: Prevent clicks inside modalContent from closing the modal
+    // MUST be set AFTER innerHTML clear to ensure it persists
+    modalContent.addEventListener("click", (e) => {
+        e.stopPropagation(); // Stop event from reaching modal
+    });
 
     // Top Half: Preview
     const previewArea = document.createElement("div");
