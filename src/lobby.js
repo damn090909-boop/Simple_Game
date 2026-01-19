@@ -13,7 +13,9 @@ export async function initLobby(user) {
     lobbyScreen.classList.add("active");
 
     // Item 13: Create test character for PIN 0000 user
-    if (currentUser.pin === "0000") {
+    console.log("Current user:", currentUser); // Debug log
+    if (currentUser && currentUser.pin === "0000") {
+        console.log("PIN 0000 detected, ensuring test character..."); // Debug log
         await ensureTestCharacter();
     }
 
@@ -24,25 +26,33 @@ export async function initLobby(user) {
 async function ensureTestCharacter() {
     const dbRef = ref(db);
     const charsRef = child(dbRef, `users/${currentUser.uid}/characters`);
-    const snapshot = await get(charsRef);
 
-    // If no characters exist, create a test character
-    if (!snapshot.exists()) {
-        const testChar = {
-            name: "Test Hero",
-            createdAt: Date.now(),
-            parts: {
-                body: "body_1",
-                bodyColor: "#ffe0bd",
-                head: "head_1",
-                hairColor: "#8b4513",
-                eyeShape: "1",
-                noseShape: "1",
-                mouthShape: "1"
-            }
-        };
-        await push(charsRef, testChar);
-        console.log("Test character created for PIN 0000");
+    try {
+        const snapshot = await get(charsRef);
+
+        // If no characters exist, create a test character
+        if (!snapshot.exists()) {
+            console.log("No characters found, creating test character...");
+            const testChar = {
+                name: "Test Hero",
+                createdAt: Date.now(),
+                parts: {
+                    body: "body_1",
+                    bodyColor: "#ffe0bd",
+                    head: "head_1",
+                    hairColor: "#8b4513",
+                    eyeShape: "1",
+                    noseShape: "1",
+                    mouthShape: "1"
+                }
+            };
+            await push(charsRef, testChar);
+            console.log("Test character created successfully!");
+        } else {
+            console.log("Characters already exist, skipping test character creation");
+        }
+    } catch (error) {
+        console.error("Error in ensureTestCharacter:", error);
     }
 }
 
@@ -236,6 +246,12 @@ function openCreatorModal() {
 
     // Setup Creator UI
     const modalContent = modal.querySelector(".modal-content");
+
+    // Prevent clicks inside modalContent from closing the modal (Item 14)
+    modalContent.onclick = (e) => {
+        e.stopPropagation();
+    };
+
     modalContent.innerHTML = ""; // Clear
     modalContent.style.position = "relative";
     modalContent.style.width = "90%";
