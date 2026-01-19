@@ -170,82 +170,251 @@ function openCreatorModal() {
     const modal = document.getElementById("creator-modal");
     modal.classList.remove("hidden");
 
+    // Character state
+    const characterState = {
+        name: "Hero",
+        body: "1",
+        bodyColor: "#ffe0bd",
+        hairStyle: "1",
+        hairColor: "#000000",
+        eyeShape: "1",
+        noseShape: "1",
+        mouthShape: "1"
+    };
+
+    let currentTab = 0;
+    const tabs = [
+        { id: "body", label: "몸", samples: ["1", "2", "3"] },
+        { id: "bodyColor", label: "바디 컬러", samples: ["#ffe0bd", "#f4c2a0", "#d4a574", "#8d5524"] },
+        { id: "hairStyle", label: "헤어스타일", samples: ["1", "2", "3"] },
+        { id: "hairColor", label: "헤어 컬러", samples: ["#000000", "#8b4513", "#ffd700", "#ff0000"] },
+        { id: "eyeShape", label: "눈 모양", samples: ["1", "2", "3"] },
+        { id: "noseShape", label: "코 모양", samples: ["1", "2", "3"] },
+        { id: "mouthShape", label: "입 모양", samples: ["1", "2", "3"] }
+    ];
+
     // Setup Creator UI
-    const previewArea = document.getElementById("creator-preview");
-    previewArea.innerHTML = ""; // Clear
+    const modalContent = modal.querySelector(".modal-content");
+    modalContent.innerHTML = ""; // Clear
+    modalContent.style.position = "relative";
+    modalContent.style.width = "90%";
+    modalContent.style.maxWidth = "500px";
+    modalContent.style.height = "80vh";
+    modalContent.style.display = "flex";
+    modalContent.style.flexDirection = "column";
 
-    // Close Button (Item 11)
-    // Avoid duplicate buttons if re-opened
-    let closeBtn = modal.querySelector(".close-modal-btn");
-    if (!closeBtn) {
-        closeBtn = document.createElement("button");
-        closeBtn.type = "button"; // Explicit type
-        closeBtn.className = "close-modal-btn";
-        closeBtn.innerHTML = "X";
-        closeBtn.style.position = "absolute";
-        closeBtn.style.top = "10px";
-        closeBtn.style.right = "10px";
-        closeBtn.style.background = "transparent";
-        closeBtn.style.border = "none";
-        closeBtn.style.color = "white";
-        closeBtn.style.fontSize = "24px";
-        closeBtn.style.cursor = "pointer";
-        closeBtn.onclick = () => {
-            modal.classList.add("hidden");
+    // Close Button
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "close-modal-btn";
+    closeBtn.innerHTML = "X";
+    closeBtn.style.position = "absolute";
+    closeBtn.style.top = "10px";
+    closeBtn.style.right = "10px";
+    closeBtn.style.background = "transparent";
+    closeBtn.style.border = "none";
+    closeBtn.style.color = "white";
+    closeBtn.style.fontSize = "24px";
+    closeBtn.style.cursor = "pointer";
+    closeBtn.style.zIndex = "100";
+    closeBtn.onclick = () => modal.classList.add("hidden");
+    modalContent.appendChild(closeBtn);
+
+    // Top Half: Preview
+    const previewArea = document.createElement("div");
+    previewArea.className = "creator-preview";
+    previewArea.style.flex = "1";
+    previewArea.style.display = "flex";
+    previewArea.style.alignItems = "center";
+    previewArea.style.justifyContent = "center";
+    previewArea.style.background = "rgba(0,0,0,0.3)";
+    previewArea.style.borderRadius = "10px";
+    previewArea.style.margin = "10px";
+    previewArea.style.fontSize = "80px";
+    previewArea.textContent = "🧙‍♂️";
+    modalContent.appendChild(previewArea);
+
+    // Bottom Half: Controls
+    const controlsArea = document.createElement("div");
+    controlsArea.className = "creator-controls";
+    controlsArea.style.flex = "1";
+    controlsArea.style.display = "flex";
+    controlsArea.style.flexDirection = "column";
+    controlsArea.style.padding = "10px";
+    controlsArea.style.overflow = "hidden";
+
+    // Name Input
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = characterState.name;
+    nameInput.placeholder = "캐릭터 이름";
+    nameInput.style.width = "100%";
+    nameInput.style.padding = "10px";
+    nameInput.style.marginBottom = "10px";
+    nameInput.style.borderRadius = "5px";
+    nameInput.style.border = "1px solid #555";
+    nameInput.style.background = "#222";
+    nameInput.style.color = "white";
+    nameInput.oninput = (e) => { characterState.name = e.target.value; };
+    controlsArea.appendChild(nameInput);
+
+    // Tab Bar
+    const tabBar = document.createElement("div");
+    tabBar.className = "tab-bar";
+    tabBar.style.display = "flex";
+    tabBar.style.overflowX = "auto";
+    tabBar.style.gap = "5px";
+    tabBar.style.marginBottom = "10px";
+    tabBar.style.padding = "5px 0";
+
+    tabs.forEach((tab, index) => {
+        const tabBtn = document.createElement("button");
+        tabBtn.type = "button";
+        tabBtn.className = "tab-item";
+        tabBtn.textContent = tab.label;
+        tabBtn.style.padding = "8px 15px";
+        tabBtn.style.border = "none";
+        tabBtn.style.borderRadius = "5px";
+        tabBtn.style.background = index === currentTab ? "#4CAF50" : "#444";
+        tabBtn.style.color = "white";
+        tabBtn.style.cursor = "pointer";
+        tabBtn.style.whiteSpace = "nowrap";
+        tabBtn.style.fontSize = "14px";
+        tabBtn.onclick = () => {
+            currentTab = index;
+            updateTabUI();
         };
-        modal.querySelector(".modal-content").appendChild(closeBtn);
-        // Ensure relative positioning for absolute child
-        modal.querySelector(".modal-content").style.position = "relative";
-    }
+        tabBar.appendChild(tabBtn);
+    });
+    controlsArea.appendChild(tabBar);
 
-    // Dynamic Controls (Item 10)
-    const controls = document.querySelector("#creator-modal .controls");
-    controls.innerHTML = `
-        <div style="text-align: left; width: 100%; margin-top: 20px;">
-            <label style="display:block; margin-bottom:5px;">Name:</label>
-            <input type="text" id="new-char-name" value="Hero" style="width:100%; padding:8px; margin-bottom:15px; border-radius:5px; border:none;">
-            
-            <label style="display:block; margin-bottom:5px;">Skin Color:</label>
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <input type="color" id="skin-color" value="#ffe0bd" style="border:none; width:40px; height:40px; cursor:pointer;">
-                <span style="line-height:40px; color:#aaa;">Pick a tone</span>
-            </div>
+    // Sample Container
+    const sampleContainer = document.createElement("div");
+    sampleContainer.className = "sample-container";
+    sampleContainer.style.display = "flex";
+    sampleContainer.style.overflowX = "auto";
+    sampleContainer.style.gap = "10px";
+    sampleContainer.style.padding = "10px 0";
+    sampleContainer.style.flex = "1";
+    controlsArea.appendChild(sampleContainer);
 
-            <label style="display:block; margin-bottom:5px;">Hair Style:</label>
-            <select id="hair-style" style="width:100%; padding:8px; border-radius:5px; margin-bottom:15px;">
-                <option value="1">Short</option>
-                <option value="2">Long</option>
-                <option value="3">Bald</option>
-            </select>
-        </div>
-    `;
-
-    const saveBtn = document.getElementById("save-char-btn");
-    const newBtn = saveBtn.cloneNode(true);
-    saveBtn.parentNode.replaceChild(newBtn, saveBtn);
-
-    newBtn.onclick = async () => {
-        const nameInput = document.getElementById("new-char-name");
-        const name = nameInput.value.trim() || "Hero";
-        const skin = document.getElementById("skin-color").value;
-        const hair = document.getElementById("hair-style").value;
-
+    // Save Button
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.textContent = "START GAME";
+    saveBtn.style.width = "100%";
+    saveBtn.style.padding = "15px";
+    saveBtn.style.marginTop = "10px";
+    saveBtn.style.background = "#2196F3";
+    saveBtn.style.border = "none";
+    saveBtn.style.borderRadius = "5px";
+    saveBtn.style.color = "white";
+    saveBtn.style.fontSize = "16px";
+    saveBtn.style.fontWeight = "bold";
+    saveBtn.style.cursor = "pointer";
+    saveBtn.onclick = async () => {
         const newChar = {
-            name: name,
-            skinColor: skin,
+            name: characterState.name,
             createdAt: Date.now(),
             parts: {
-                body: "body_basic",
-                head: `head_${hair}`, // map hair logic later
-                arm: "arm_basic",
-                leg: "leg_basic"
+                body: `body_${characterState.body}`,
+                bodyColor: characterState.bodyColor,
+                head: `head_${characterState.hairStyle}`,
+                hairColor: characterState.hairColor,
+                eyeShape: characterState.eyeShape,
+                noseShape: characterState.noseShape,
+                mouthShape: characterState.mouthShape
             }
         };
-
-        // Create & Close
         await createCharacter(newChar);
         modal.classList.add("hidden");
     };
+    controlsArea.appendChild(saveBtn);
+
+    modalContent.appendChild(controlsArea);
+
+    // Update UI function
+    function updateTabUI() {
+        // Update tab buttons
+        Array.from(tabBar.children).forEach((btn, i) => {
+            btn.style.background = i === currentTab ? "#4CAF50" : "#444";
+        });
+
+        // Update samples
+        sampleContainer.innerHTML = "";
+        const currentTabData = tabs[currentTab];
+        currentTabData.samples.forEach(sample => {
+            const sampleBox = document.createElement("div");
+            sampleBox.className = "sample-box";
+            sampleBox.style.minWidth = "80px";
+            sampleBox.style.height = "80px";
+            sampleBox.style.borderRadius = "8px";
+            sampleBox.style.display = "flex";
+            sampleBox.style.alignItems = "center";
+            sampleBox.style.justifyContent = "center";
+            sampleBox.style.cursor = "pointer";
+            sampleBox.style.border = "2px solid #555";
+            sampleBox.style.fontSize = "12px";
+            sampleBox.style.fontWeight = "bold";
+
+            // Color samples show color, others show text
+            if (currentTabData.id.includes("Color")) {
+                sampleBox.style.background = sample;
+                sampleBox.textContent = "";
+            } else {
+                sampleBox.style.background = "#333";
+                sampleBox.style.color = "white";
+                sampleBox.textContent = sample;
+            }
+
+            // Highlight if selected
+            if (characterState[currentTabData.id] === sample) {
+                sampleBox.style.border = "3px solid #00FF00";
+                sampleBox.style.boxShadow = "0 0 10px rgba(0,255,0,0.5)";
+            }
+
+            sampleBox.onclick = () => {
+                characterState[currentTabData.id] = sample;
+                updateTabUI();
+            };
+
+            sampleContainer.appendChild(sampleBox);
+        });
+    }
+
+    // Swipe support for tabs
+    let touchStartX = 0;
+    tabBar.addEventListener("touchstart", e => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+    tabBar.addEventListener("touchend", e => {
+        const touchEndX = e.changedTouches[0].screenX;
+        const diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0 && currentTab < tabs.length - 1) {
+                currentTab++;
+                updateTabUI();
+            } else if (diff < 0 && currentTab > 0) {
+                currentTab--;
+                updateTabUI();
+            }
+        }
+    });
+
+    // Swipe support for samples
+    sampleContainer.addEventListener("touchstart", e => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+    sampleContainer.addEventListener("touchend", e => {
+        const touchEndX = e.changedTouches[0].screenX;
+        const diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 30) {
+            sampleContainer.scrollLeft += diff > 0 ? 100 : -100;
+        }
+    });
+
+    // Initial render
+    updateTabUI();
 }
 
 async function createCharacter(charData) {
