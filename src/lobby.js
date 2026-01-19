@@ -200,8 +200,7 @@ function openCreatorModal() {
     modalContent.style.width = "90%";
     modalContent.style.maxWidth = "500px";
     modalContent.style.height = "80vh";
-    modalContent.style.display = "flex";
-    modalContent.style.flexDirection = "column";
+    // Remove display:flex from here - will be handled by CSS
 
     // Close Button
     const closeBtn = document.createElement("button");
@@ -221,6 +220,9 @@ function openCreatorModal() {
     closeBtn.onclick = (e) => {
         e.stopPropagation();
         e.preventDefault();
+        // Clear the modal content to reset state
+        modalContent.innerHTML = "";
+        // Hide the modal
         modal.classList.add("hidden");
     };
     modalContent.appendChild(closeBtn);
