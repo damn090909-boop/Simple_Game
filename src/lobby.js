@@ -53,58 +53,69 @@ function createSlotElement(charData) {
     const slot = document.createElement("div");
     slot.className = "slot";
 
+    // Common style for 50/50 split
+    slot.style.display = "flex";
+    slot.style.flexDirection = "row";
+    slot.style.alignItems = "stretch";
+    slot.style.padding = "10px";
+
     if (charData) {
         slot.classList.add("filled");
-        // Enforce Column layout for filled slots to separate Content and Buttons rows
-        slot.style.flexDirection = "column";
-        slot.style.alignItems = "stretch"; // Full width
 
-        // --- Row 1: Content (Left: Portrait, Right: Info) ---
-        const contentRow = document.createElement("div");
-        contentRow.className = "slot-content-row";
-        contentRow.style.display = "flex";
-        contentRow.style.flexDirection = "row";
-        contentRow.style.flexGrow = "1";
-
-        // Left Column (Portrait)
+        // --- Left Half (50%) : Portrait ---
         const leftCol = document.createElement("div");
         leftCol.className = "slot-left";
+        leftCol.style.flex = "0 0 50%"; // Fixed 50%
+        leftCol.style.display = "flex";
+        leftCol.style.alignItems = "center";
+        leftCol.style.justifyContent = "center";
+
         const preview = document.createElement("div");
         preview.className = "char-preview";
         preview.textContent = "🧙‍♂️";
         leftCol.appendChild(preview);
-        contentRow.appendChild(leftCol);
+        slot.appendChild(leftCol);
 
-        // Right Column (Info)
+        // --- Right Half (50%) : Info + Buttons ---
         const rightCol = document.createElement("div");
         rightCol.className = "slot-right";
+        rightCol.style.flex = "0 0 50%"; // Fixed 50%
+        rightCol.style.display = "flex";
+        rightCol.style.flexDirection = "column";
+        rightCol.style.justifyContent = "space-between"; // Push buttons to bottom
+        rightCol.style.paddingLeft = "10px";
 
+        // Top: Info
+        const infoDiv = document.createElement("div");
         const nameDisplay = document.createElement("div");
         nameDisplay.className = "char-name";
         nameDisplay.textContent = charData.name || "Hero";
-        rightCol.appendChild(nameDisplay);
+        nameDisplay.style.fontSize = "18px";
 
         const infoDisplay = document.createElement("div");
         infoDisplay.className = "char-details";
+        infoDisplay.style.fontSize = "12px";
         infoDisplay.innerHTML = `Lv. ${charData.level || 1}<br>Map: Town`;
-        rightCol.appendChild(infoDisplay);
 
-        contentRow.appendChild(rightCol);
-        slot.appendChild(contentRow);
+        infoDiv.appendChild(nameDisplay);
+        infoDiv.appendChild(infoDisplay);
+        rightCol.appendChild(infoDiv);
 
-        // --- Row 2: Buttons (Bottom Side-by-Side) ---
+        // Bottom: Buttons
         const btnRow = document.createElement("div");
         btnRow.className = "slot-buttons";
         btnRow.style.display = "flex";
-        btnRow.style.marginTop = "10px"; // Spacing
-        btnRow.style.gap = "10px";
+        btnRow.style.gap = "8px";
+        btnRow.style.justifyContent = "flex-end"; // Aligned right-bottom implied or strictly bottom? "Right-bottom" requested.
+        btnRow.style.marginTop = "auto"; // Ensure it sits at bottom
+
+        const btnStyle = "width: 40px; height: 32px; border-radius: 6px; font-size: 14px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;";
 
         // Delete Button
         const delBtn = document.createElement("button");
-        delBtn.textContent = "🗑 DELETE";
+        delBtn.textContent = "🗑";
         delBtn.className = "slot-btn delete-btn";
-        delBtn.style.flexGrow = "1"; // Share width
-        delBtn.style.borderRadius = "8px";
+        delBtn.style.cssText = btnStyle + "background: #d32f2f; color: white;";
         delBtn.onclick = (e) => {
             e.stopPropagation();
             if (confirm("Delete this character?")) deleteCharacter(charData.id);
@@ -113,21 +124,25 @@ function createSlotElement(charData) {
 
         // Connect Button
         const enterBtn = document.createElement("button");
-        enterBtn.textContent = "🎮 PLAY";
+        enterBtn.textContent = "▶"; // Play icon
         enterBtn.className = "slot-btn play-btn";
-        enterBtn.style.flexGrow = "2"; // Play button wider
-        enterBtn.style.borderRadius = "8px";
+        enterBtn.style.cssText = btnStyle + "background: #4CAF50; color: white;";
         enterBtn.onclick = (e) => {
             e.stopPropagation();
             enterGame(charData);
         };
         btnRow.appendChild(enterBtn);
 
-        slot.appendChild(btnRow);
+        rightCol.appendChild(btnRow);
+        slot.appendChild(rightCol);
 
     } else {
         slot.classList.add("empty");
-        // Vertical layout for empty
+        // Center content for empty slot
+        slot.style.justifyContent = "center";
+        slot.style.alignItems = "center";
+        slot.style.flexDirection = "column";
+
         const createIcon = document.createElement("div");
         createIcon.textContent = "+";
         createIcon.className = "create-icon";

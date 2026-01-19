@@ -81,9 +81,9 @@ User's Instruction Begins below:
 ### B. Lobby & Customization (`src/lobby.js`)
 - **Slots:** 3 Character Cards.
     - *Exists:* 
-        - Left: Portrait (Preview).
-        - Right: Character Name, below it Info (Stats).
-        - Bottom: Delete and Connect buttons aligned side-by-side.
+        - Layout: 50% Left (Portrait), 50% Right (Info + Buttons).
+        - Right Column: Name/Info at top, Delete/Connect buttons at bottom.
+        - Buttons: Consistent small size, aligned right-bottom.
     - *Empty:* Black Silhouette + [+] Button.
 - **Character Creator:** 
     - **Parts:** Body, Hair (Bone toggle), Face (Sprite toggle).
