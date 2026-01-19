@@ -179,6 +179,7 @@ function openCreatorModal() {
     let closeBtn = modal.querySelector(".close-modal-btn");
     if (!closeBtn) {
         closeBtn = document.createElement("button");
+        closeBtn.type = "button"; // Explicit type
         closeBtn.className = "close-modal-btn";
         closeBtn.innerHTML = "X";
         closeBtn.style.position = "absolute";
