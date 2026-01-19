@@ -215,13 +215,24 @@ function openCreatorModal() {
     const modal = document.getElementById("creator-modal");
     modal.classList.remove("hidden");
 
-    // Click outside to close (Item 14)
+    // Click outside to close (Item 14) - WITH DEBUG LOGGING
     modal.onclick = (e) => {
+        console.log("Modal clicked!", {
+            target: e.target,
+            currentTarget: e.currentTarget,
+            targetClassName: e.target.className,
+            targetId: e.target.id,
+            isModal: e.target === modal
+        });
+
         // Only close if clicking the modal background, not the content
         if (e.target === modal) {
+            console.log("Closing modal - clicked background");
             modal.classList.add("hidden");
             const modalContent = modal.querySelector(".modal-content");
             if (modalContent) modalContent.innerHTML = "";
+        } else {
+            console.log("NOT closing - clicked:", e.target.className || e.target.tagName);
         }
     };
 
