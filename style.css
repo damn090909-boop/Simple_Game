@@ -384,6 +384,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
+    /* Allow clicks to pass through modal container */
 }
 
 .modal-overlay {
@@ -394,6 +396,10 @@ body {
     height: 100%;
     background: rgba(0, 0, 0, 0.9);
     z-index: 1;
+    pointer-events: auto;
+    /* Overlay should receive clicks */
+    cursor: pointer;
+    /* Show it's clickable */
 }
 
 .modal-content {
@@ -409,6 +415,8 @@ body {
     flex-direction: column;
     z-index: 2;
     position: relative;
+    pointer-events: auto;
+    /* Content should receive clicks and stop propagation */
 }
 
 .hidden {
