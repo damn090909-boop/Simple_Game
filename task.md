@@ -22,7 +22,8 @@
     - [x] Feature: Creation Popup with Double-Check Logic
     - [x] AudioContext resume trigger on interactions
 - [x] **Lobby System (`src/lobby.js`)**
-    - [x] Character Slot UI (Cards)
+    - [x] Layout: Vertical Stacking (Portrait Mode)
+    - [x] Slot UI: Split Left(Portrait/Btns) & Right(Info)
     - [x] Character Customizer Modal (Body/Hair/Color/Face)
     - [x] Save/Load logic to Firebase `users/{uid}/characters`
 

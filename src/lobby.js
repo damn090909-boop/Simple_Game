@@ -51,53 +51,87 @@ async function loadCharacters() {
 
 function createSlotElement(charData) {
     const slot = document.createElement("div");
+    /**
+     * Structure:
+     * .slot (Flex Row)
+     *   > .slot-left (Flex Col)
+     *      > .char-preview
+     *      > .slot-buttons (Flex Row) -> [Delete] [Connect]
+     *   > .slot-right (Flex Col)
+     *      > .char-info (Name, Stats)
+     */
     slot.className = "slot";
 
     if (charData) {
         slot.classList.add("filled");
 
-        // Info
-        const nameDisplay = document.createElement("div");
-        nameDisplay.textContent = charData.name || "Hero";
-        slot.appendChild(nameDisplay);
+        // Left Column
+        const leftCol = document.createElement("div");
+        leftCol.className = "slot-left";
 
-        // Preview (Simple text for now, or canvas later)
+        // Preview
         const preview = document.createElement("div");
-        preview.textContent = "🧙‍♂️"; // Emoji placeholder till canvas
-        preview.style.fontSize = "40px";
-        slot.appendChild(preview);
+        preview.className = "char-preview";
+        preview.textContent = "🧙‍♂️"; // Placeholder
+        leftCol.appendChild(preview);
 
-        // Enter Button
-        const enterBtn = document.createElement("button");
-        enterBtn.textContent = "PLAY";
-        enterBtn.onclick = (e) => {
-            e.stopPropagation();
-            enterGame(charData);
-        };
-        slot.appendChild(enterBtn);
+        // Buttons Row (Horizontal)
+        const btnRow = document.createElement("div");
+        btnRow.className = "slot-buttons";
 
-        // Delete Button (Small for now)
+        // Delete Button
         const delBtn = document.createElement("button");
         delBtn.textContent = "🗑";
-        delBtn.style.marginTop = "5px";
-        delBtn.style.background = "#d32f2f";
+        delBtn.className = "slot-btn delete-btn";
         delBtn.onclick = (e) => {
             e.stopPropagation();
             if (confirm("Delete this character?")) deleteCharacter(charData.id);
         };
-        slot.appendChild(delBtn);
+        btnRow.appendChild(delBtn);
+
+        // Connect Button
+        const enterBtn = document.createElement("button");
+        enterBtn.textContent = "PLAY";
+        enterBtn.className = "slot-btn play-btn";
+        enterBtn.onclick = (e) => {
+            e.stopPropagation();
+            enterGame(charData);
+        };
+        btnRow.appendChild(enterBtn);
+
+        leftCol.appendChild(btnRow);
+        slot.appendChild(leftCol);
+
+        // Right Column (Info)
+        const rightCol = document.createElement("div");
+        rightCol.className = "slot-right";
+
+        const nameDisplay = document.createElement("div");
+        nameDisplay.className = "char-name";
+        nameDisplay.textContent = charData.name || "Hero";
+        rightCol.appendChild(nameDisplay);
+
+        const infoDisplay = document.createElement("div");
+        infoDisplay.className = "char-details";
+        infoDisplay.innerHTML = `Lv. ${charData.level || 1}<br>Map: Town`;
+        rightCol.appendChild(infoDisplay);
+
+        slot.appendChild(rightCol);
+
+        // Make whole slot clickable too? Maybe just buttons. 
+        // User said "Connect Button" specifically. 
+        // But for UX, clicking slot often selects. Let's keep specific buttons active.
 
     } else {
         slot.classList.add("empty");
-
-        // Create Button
+        // Vertical layout for empty
         const createIcon = document.createElement("div");
         createIcon.textContent = "+";
-        createIcon.style.fontSize = "40px";
+        createIcon.className = "create-icon";
         slot.appendChild(createIcon);
 
         const label = document.createElement("div");
-        label.textContent = "New";
+        label.textContent = "New Character";
         slot.appendChild(label);
 
         slot.onclick = () => openCreatorModal();
