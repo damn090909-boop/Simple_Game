@@ -66,10 +66,15 @@ function createSlotElement(charData) {
         const leftCol = document.createElement("div");
         leftCol.className = "slot-left";
 
+        const previewBox = document.createElement("div");
+        previewBox.className = "char-preview-box";
+
         const preview = document.createElement("div");
         preview.className = "char-preview";
         preview.textContent = "🧙‍♂️";
-        leftCol.appendChild(preview);
+
+        previewBox.appendChild(preview);
+        leftCol.appendChild(previewBox);
         slot.appendChild(leftCol);
 
         // --- Right Half (50%) : Info + Buttons ---

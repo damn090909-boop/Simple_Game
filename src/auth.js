@@ -216,14 +216,15 @@ async function createNewUser(pin, authScreen, onSuccess) {
 
     try {
         await set(ref(db, "users/" + newUid), newUser);
-        alert("Auth Key Created! You can now Connect.");
 
-        // Return to Intro
+        // Return to Intro first
         popupOverlay.classList.add("hidden");
         resetInputs(createInputs);
         resetInputs(confirmInputs);
-        resetInputs(loginInputs); // Keep it empty?
+        resetInputs(loginInputs);
         loginInputs[0].focus();
+
+        alert("Auth Key Created! You can now Connect.");
 
     } catch (e) {
         console.error("Creation failed", e);
