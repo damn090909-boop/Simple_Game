@@ -83,3 +83,5 @@
     - Confirmed `overscroll-behavior: none` in CSS.
 - [x] **Hotfix**: Implemented Auto-Registration for new PINs.
 - [x] **Hotfix**: Fixed `config.js` module export error.
+- [x] **Verification**: Verified core logic via Deployed URL (GitHub Pages).
+    - Confirmed 'Cancel' button logic in local code (Deployment was outdated).

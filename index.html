@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="style.css">
 
     <!-- PixiJS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+    <!-- PixiJS (Loaded via Modules in src/loader.js) -->
     <!-- Firebase SDK (Version 9 via CDN - Modules will be imported in config.js) -->
     <!-- We will use ES Module imports in our src files -->
 </head>
@@ -63,6 +63,7 @@
                     </div>
 
                     <div class="action-row">
+                        <button id="cancel-create-btn" class="secondary-btn">Cancel</button>
                         <button id="final-create-btn" class="main-btn" disabled>Create Key</button>
                     </div>
                 </div>

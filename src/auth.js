@@ -131,29 +131,10 @@ function resumeAudio() {
     }
 }
 
-// Check DB to enable "Connect" button
-async function validateLoginPin() {
+// Enable "Connect" button based on length only (UX fix)
+function validateLoginPin() {
     const pin = getPinFromInputs(loginInputs);
-    if (pin.length !== 4) {
-        loginBtn.disabled = true;
-        return;
-    }
-
-    try {
-        const dbRef = ref(db, "users");
-        // Check if ANY user has this PIN
-        const snapshot = await get(dbRef);
-        let isValid = false;
-
-        if (snapshot.exists()) {
-            const users = snapshot.val();
-            isValid = Object.values(users).some(u => u.pin === pin);
-        }
-
-        loginBtn.disabled = !isValid;
-    } catch (e) {
-        console.error("Validation error", e);
-    }
+    loginBtn.disabled = (pin.length !== 4);
 }
 
 async function attemptLogin(pin, authScreen, onSuccess) {
@@ -180,6 +161,7 @@ async function attemptLogin(pin, authScreen, onSuccess) {
                 currentUser = { uid: userId, ...foundUser };
                 proceedToGame(authScreen, onSuccess);
             } else {
+                alert("User not found with this PIN. Please create a key.");
                 loginBtn.disabled = true;
             }
         }

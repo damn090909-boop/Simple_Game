@@ -1,4 +1,4 @@
-import { initLoader } from "./loader.js";
+import { initLoader } from "./loader.js?v=2";
 import { initAuth } from "./auth.js";
 import { initLobby } from "./lobby.js";
 // import { initGame } from "./engine.js"; // Will be created next
@@ -7,7 +7,13 @@ async function startApp() {
     console.log("Starting App...");
 
     // 1. Load Assets
-    await initLoader();
+    try {
+        await initLoader();
+    } catch (e) {
+        console.error("Asset Load Failed:", e);
+        alert("Failed to load game assets. Check connection.\n" + e.message);
+        return; // Stop execution
+    }
 
     // 2. Init Auth
     // Pass callback for when login is done
@@ -33,6 +39,9 @@ async function startApp() {
                 // 6. Init RPG
                 import("./rpg_core.js").then(r => r.initRPG());
                 import("./monster.js").then(m => m.initMonsters());
+            }).catch(e => {
+                console.error("Game Engine Error:", e);
+                alert("Game Engine Failed to Load:\n" + e.message);
             });
         });
     });
