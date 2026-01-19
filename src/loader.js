@@ -20,15 +20,22 @@ export async function initLoader() {
         { alias: "furniture_table", src: "assets/furniture_table.png" }
     ];
 
-    // Initialize Assets system (Mandatory in some v7+ contexts)
+    // Initialize Assets system (Mandatory)
     await PIXI.Assets.init();
 
-    // Method: Add Bundle directly (Simpler than Manifest via init)
-    PIXI.Assets.addBundle("game-screen", assets);
+    // Check availability (Debug)
+    console.log("PIXI.Assets availability:", !!PIXI.Assets);
 
-    // Load Bundle
-    console.log("Loading assets bundle...");
-    const loadedAssets = await PIXI.Assets.loadBundle("game-screen");
+    // Method: Add assets individually (Most robust method)
+    const assetKeys = [];
+    assets.forEach(asset => {
+        PIXI.Assets.add(asset.alias, asset.src);
+        assetKeys.push(asset.alias);
+    });
+
+    // Load All
+    console.log("Loading assets...");
+    const loadedAssets = await PIXI.Assets.load(assetKeys);
 
     // Store reference
     Assets.textures = loadedAssets;
