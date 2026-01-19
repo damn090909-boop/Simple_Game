@@ -127,8 +127,12 @@ function createSlotElement(charData) {
         delBtn.textContent = "🗑";
         delBtn.className = "slot-btn delete-btn";
         delBtn.onclick = (e) => {
+            e.preventDefault();
             e.stopPropagation();
-            if (confirm("Delete this character?")) deleteCharacter(charData.id);
+            // Delay confirm to prevent immediate dismissal by browser UI event quirks
+            setTimeout(() => {
+                if (confirm("Delete this character?")) deleteCharacter(charData.id);
+            }, 50);
         };
         btnRow.appendChild(delBtn);
 
