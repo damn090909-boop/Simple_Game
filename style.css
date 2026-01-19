@@ -225,7 +225,8 @@ body {
 }
 
 .slot.filled {
-    border-color: #4CAF50;
+    border-color: #666;
+    /* Neutral border unless selected */
     color: white;
     background: #2a2a2a;
 }

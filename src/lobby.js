@@ -164,44 +164,83 @@ function createSlotElement(charData) {
 }
 
 // --- Character Creator ---
+// --- Character Creator ---
 function openCreatorModal() {
     const modal = document.getElementById("creator-modal");
     modal.classList.remove("hidden");
 
-    // Setup Creator UI (Simplified for MVP)
+    // Setup Creator UI
     const previewArea = document.getElementById("creator-preview");
     previewArea.innerHTML = ""; // Clear
 
-    // Let's create simple dropdowns/buttons dynamically 
+    // Close Button (Item 11)
+    // Avoid duplicate buttons if re-opened
+    let closeBtn = modal.querySelector(".close-modal-btn");
+    if (!closeBtn) {
+        closeBtn = document.createElement("button");
+        closeBtn.className = "close-modal-btn";
+        closeBtn.innerHTML = "X";
+        closeBtn.style.position = "absolute";
+        closeBtn.style.top = "10px";
+        closeBtn.style.right = "10px";
+        closeBtn.style.background = "transparent";
+        closeBtn.style.border = "none";
+        closeBtn.style.color = "white";
+        closeBtn.style.fontSize = "24px";
+        closeBtn.style.cursor = "pointer";
+        closeBtn.onclick = () => {
+            modal.classList.add("hidden");
+        };
+        modal.querySelector(".modal-content").appendChild(closeBtn);
+        // Ensure relative positioning for absolute child
+        modal.querySelector(".modal-content").style.position = "relative";
+    }
+
+    // Dynamic Controls (Item 10)
     const controls = document.querySelector("#creator-modal .controls");
     controls.innerHTML = `
-        <label>Name: <input type="text" id="new-char-name" value="Hero"></label><br>
-        <label>Skin Color: <input type="color" id="skin-color" value="#ffe0bd"></label><br>
-        <label>Hair Style: <select id="hair-style"><option value="1">Style 1</option></select></label>
+        <div style="text-align: left; width: 100%; margin-top: 20px;">
+            <label style="display:block; margin-bottom:5px;">Name:</label>
+            <input type="text" id="new-char-name" value="Hero" style="width:100%; padding:8px; margin-bottom:15px; border-radius:5px; border:none;">
+            
+            <label style="display:block; margin-bottom:5px;">Skin Color:</label>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="color" id="skin-color" value="#ffe0bd" style="border:none; width:40px; height:40px; cursor:pointer;">
+                <span style="line-height:40px; color:#aaa;">Pick a tone</span>
+            </div>
+
+            <label style="display:block; margin-bottom:5px;">Hair Style:</label>
+            <select id="hair-style" style="width:100%; padding:8px; border-radius:5px; margin-bottom:15px;">
+                <option value="1">Short</option>
+                <option value="2">Long</option>
+                <option value="3">Bald</option>
+            </select>
+        </div>
     `;
 
     const saveBtn = document.getElementById("save-char-btn");
-    // Remove old listeners
     const newBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newBtn, saveBtn);
 
     newBtn.onclick = async () => {
-        const name = document.getElementById("new-char-name").value;
+        const nameInput = document.getElementById("new-char-name");
+        const name = nameInput.value.trim() || "Hero";
         const skin = document.getElementById("skin-color").value;
+        const hair = document.getElementById("hair-style").value;
 
         const newChar = {
             name: name,
             skinColor: skin,
             createdAt: Date.now(),
-            // Default parts
             parts: {
                 body: "body_basic",
-                head: "head_1",
+                head: `head_${hair}`, // map hair logic later
                 arm: "arm_basic",
                 leg: "leg_basic"
             }
         };
 
+        // Create & Close
         await createCharacter(newChar);
         modal.classList.add("hidden");
     };
