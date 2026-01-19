@@ -126,19 +126,20 @@ function createSlotElement(charData) {
 
         // Delete Button
         const delBtn = document.createElement("button");
+        delBtn.type = "button"; // Explicit type to prevent form submission
         delBtn.textContent = "캐릭터삭제";
         delBtn.className = "slot-btn delete-btn";
         delBtn.onclick = (e) => {
-            // e.preventDefault(); // Removed as it might block native confirm on some mobile browsers
-            e.stopPropagation(); // Keep this to prevent slot selection
+            e.stopPropagation(); // Prevent slot selection
             // Small delay to ensure event bubbling is clean
             setTimeout(() => {
-                if (confirm("Delete this character?")) deleteCharacter(charData.id);
+                if (confirm("이 캐릭터를 삭제하시겠습니까?")) deleteCharacter(charData.id);
             }, 50);
         };
 
         // Connect Button
         const enterBtn = document.createElement("button");
+        enterBtn.type = "button"; // Explicit type
         enterBtn.textContent = "모험시작";
         enterBtn.className = "slot-btn play-btn";
         enterBtn.onclick = (e) => {
