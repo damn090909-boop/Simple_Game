@@ -101,7 +101,7 @@ function createSlotElement(charData) {
         document.querySelectorAll(".slot").forEach(s => s.classList.remove("selected"));
         slot.classList.add("selected");
         selectedSlotId = charData ? charData.id : "new";
-        if (!charData) openCreatorModal();
+        // Item 15: Removed openCreatorModal from here - should only open via '+' button
     };
 
     // Common style
@@ -129,10 +129,14 @@ function createSlotElement(charData) {
         preview.style.filter = "brightness(0) grayscale(100%)";
         preview.style.opacity = "0.7";
 
-        // Create Button Overlay (+)
+        // Create Button Overlay (+) - Item 15: Only this should open the modal
         const createOverlay = document.createElement("div");
         createOverlay.className = "create-overlay";
         createOverlay.textContent = "+";
+        createOverlay.onclick = (e) => {
+            e.stopPropagation(); // Prevent slot click event
+            openCreatorModal();
+        };
         previewBox.appendChild(createOverlay);
     }
 
