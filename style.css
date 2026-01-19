@@ -245,15 +245,17 @@ body {
 }
 
 /* --- Slot Internals --- */
+/* --- Slot Internals --- */
 .slot-left {
+    flex: 0 0 50%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 100px;
+    justify-content: center;
     border-right: 1px solid #555;
-    padding-right: 10px;
-    margin-right: 10px;
-    flex-shrink: 0;
+    /* Keep separator? User didn't say remove, but 50/50 split implies it might be nice. */
+    box-sizing: border-box;
+    /* Ensure padding doesn't break 50% */
 }
 
 .char-preview {
@@ -261,15 +263,29 @@ body {
     margin-bottom: 5px;
 }
 
+.slot-right {
+    flex: 0 0 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    /* Info top, buttons bottom */
+    padding-left: 10px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
 .slot-buttons {
     display: flex;
-    gap: 5px;
+    gap: 8px;
+    justify-content: flex-end;
+    /* Aligned Right-Bottom */
+    margin-top: auto;
 }
 
 .slot-btn {
-    width: 32px;
+    width: 40px;
     height: 32px;
-    border-radius: 8px;
+    border-radius: 6px;
     border: none;
     color: white;
     cursor: pointer;
@@ -285,16 +301,7 @@ body {
 
 .play-btn {
     background: #4CAF50;
-    flex-grow: 1;
-    /* Make play button wider if needed, or keep same */
-}
-
-.slot-right {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    flex-grow: 1;
-    text-align: left;
+    /* Removed flex-grow to keep small size */
 }
 
 .char-name {

@@ -65,10 +65,6 @@ function createSlotElement(charData) {
         // --- Left Half (50%) : Portrait ---
         const leftCol = document.createElement("div");
         leftCol.className = "slot-left";
-        leftCol.style.flex = "0 0 50%"; // Fixed 50%
-        leftCol.style.display = "flex";
-        leftCol.style.alignItems = "center";
-        leftCol.style.justifyContent = "center";
 
         const preview = document.createElement("div");
         preview.className = "char-preview";
@@ -79,22 +75,18 @@ function createSlotElement(charData) {
         // --- Right Half (50%) : Info + Buttons ---
         const rightCol = document.createElement("div");
         rightCol.className = "slot-right";
-        rightCol.style.flex = "0 0 50%"; // Fixed 50%
-        rightCol.style.display = "flex";
-        rightCol.style.flexDirection = "column";
-        rightCol.style.justifyContent = "space-between"; // Push buttons to bottom
-        rightCol.style.paddingLeft = "10px";
 
         // Top: Info
         const infoDiv = document.createElement("div");
         const nameDisplay = document.createElement("div");
         nameDisplay.className = "char-name";
         nameDisplay.textContent = charData.name || "Hero";
+        // Font sizes are handled in CSS or inherited, but okay to keep simple overrides if needed, 
+        // but let's rely on CSS mostly. 
         nameDisplay.style.fontSize = "18px";
 
         const infoDisplay = document.createElement("div");
         infoDisplay.className = "char-details";
-        infoDisplay.style.fontSize = "12px";
         infoDisplay.innerHTML = `Lv. ${charData.level || 1}<br>Map: Town`;
 
         infoDiv.appendChild(nameDisplay);
@@ -104,18 +96,11 @@ function createSlotElement(charData) {
         // Bottom: Buttons
         const btnRow = document.createElement("div");
         btnRow.className = "slot-buttons";
-        btnRow.style.display = "flex";
-        btnRow.style.gap = "8px";
-        btnRow.style.justifyContent = "flex-end"; // Aligned right-bottom implied or strictly bottom? "Right-bottom" requested.
-        btnRow.style.marginTop = "auto"; // Ensure it sits at bottom
-
-        const btnStyle = "width: 40px; height: 32px; border-radius: 6px; font-size: 14px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;";
 
         // Delete Button
         const delBtn = document.createElement("button");
         delBtn.textContent = "🗑";
         delBtn.className = "slot-btn delete-btn";
-        delBtn.style.cssText = btnStyle + "background: #d32f2f; color: white;";
         delBtn.onclick = (e) => {
             e.stopPropagation();
             if (confirm("Delete this character?")) deleteCharacter(charData.id);
@@ -124,9 +109,8 @@ function createSlotElement(charData) {
 
         // Connect Button
         const enterBtn = document.createElement("button");
-        enterBtn.textContent = "▶"; // Play icon
+        enterBtn.textContent = "▶";
         enterBtn.className = "slot-btn play-btn";
-        enterBtn.style.cssText = btnStyle + "background: #4CAF50; color: white;";
         enterBtn.onclick = (e) => {
             e.stopPropagation();
             enterGame(charData);
@@ -138,10 +122,7 @@ function createSlotElement(charData) {
 
     } else {
         slot.classList.add("empty");
-        // Center content for empty slot
-        slot.style.justifyContent = "center";
-        slot.style.alignItems = "center";
-        slot.style.flexDirection = "column";
+        // Center content for empty slot - Handled by CSS .slot.empty
 
         const createIcon = document.createElement("div");
         createIcon.textContent = "+";
