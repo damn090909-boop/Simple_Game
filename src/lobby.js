@@ -49,9 +49,19 @@ async function loadCharacters() {
     }
 }
 
+let selectedSlotId = null;
+
 function createSlotElement(charData) {
     const slot = document.createElement("div");
     slot.className = "slot";
+
+    // Selection Logic: Green Border
+    slot.onclick = () => {
+        document.querySelectorAll(".slot").forEach(s => s.classList.remove("selected"));
+        slot.classList.add("selected");
+        selectedSlotId = charData ? charData.id : "new";
+        if (!charData) openCreatorModal();
+    };
 
     // Common style for 50/50 split
     slot.style.display = "flex";
@@ -59,73 +69,30 @@ function createSlotElement(charData) {
     slot.style.alignItems = "stretch";
     slot.style.padding = "10px";
 
-    // --- Left Half (50%) : Portrait / Silhouette ---
+    // --- Left Half (50%) : Buttons (Filled) / Info (Empty) ---
     const leftCol = document.createElement("div");
     leftCol.className = "slot-left";
 
-    const previewBox = document.createElement("div");
-    previewBox.className = "char-preview-box";
-
-    const preview = document.createElement("div");
-    preview.className = "char-preview";
-
     if (charData) {
         slot.classList.add("filled");
-        preview.textContent = "🧙‍♂️"; // TODO: Real preview
-        // Make preview standard brightness
-        preview.style.filter = "none";
-    } else {
-        slot.classList.add("empty");
-        preview.textContent = "👤";
-        // Silhouette effect (Dark/Black)
-        preview.style.filter = "brightness(0) grayscale(100%)";
-        preview.style.opacity = "0.7";
-    }
 
-    previewBox.appendChild(preview);
-    leftCol.appendChild(previewBox);
-    slot.appendChild(leftCol);
+        // Buttons Container (Full Fill)
+        const btnContainer = document.createElement("div");
+        btnContainer.className = "slot-action-buttons";
 
-    // --- Right Half (50%) : Info + Buttons ---
-    const rightCol = document.createElement("div");
-    rightCol.className = "slot-right";
+        // Connect Button (Top or First) -> "Start Adventure"
+        const enterBtn = document.createElement("button");
+        enterBtn.textContent = "모험시작";
+        enterBtn.className = "slot-btn play-btn full-width";
+        enterBtn.onclick = (e) => {
+            e.stopPropagation();
+            enterGame(charData);
+        };
 
-    // Top: Info
-    const infoDiv = document.createElement("div");
-
-    if (charData) {
-        const nameDisplay = document.createElement("div");
-        nameDisplay.className = "char-name";
-        nameDisplay.textContent = charData.name;
-        nameDisplay.style.fontSize = "18px";
-
-        const infoDisplay = document.createElement("div");
-        infoDisplay.className = "char-details";
-        infoDisplay.innerHTML = `Lv. ${charData.level || 1}<br>Map: Town`;
-
-        infoDiv.appendChild(nameDisplay);
-        infoDiv.appendChild(infoDisplay);
-    } else {
-        // Empty State Info
-        const emptyLabel = document.createElement("div");
-        emptyLabel.className = "char-name";
-        emptyLabel.textContent = "Empty Slot";
-        emptyLabel.style.fontSize = "16px";
-        emptyLabel.style.color = "#777";
-        infoDiv.appendChild(emptyLabel);
-    }
-
-    rightCol.appendChild(infoDiv);
-
-    // Bottom: Buttons
-    const btnRow = document.createElement("div");
-    btnRow.className = "slot-buttons";
-
-    if (charData) {
-        // Delete Button
+        // Delete Button -> "Delete Character"
         const delBtn = document.createElement("button");
-        delBtn.textContent = "🗑";
-        delBtn.className = "slot-btn delete-btn";
+        delBtn.textContent = "캐릭터삭제";
+        delBtn.className = "slot-btn delete-btn full-width";
         delBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -134,40 +101,56 @@ function createSlotElement(charData) {
                 if (confirm("Delete this character?")) deleteCharacter(charData.id);
             }, 50);
         };
-        btnRow.appendChild(delBtn);
 
-        // Connect Button
-        const enterBtn = document.createElement("button");
-        enterBtn.textContent = "▶";
-        enterBtn.className = "slot-btn play-btn";
-        enterBtn.onclick = (e) => {
-            e.stopPropagation();
-            enterGame(charData);
-        };
-        btnRow.appendChild(enterBtn);
+        btnContainer.appendChild(enterBtn);
+        btnContainer.appendChild(delBtn);
+        leftCol.appendChild(btnContainer);
+
     } else {
-        // Create Button ([+])
-        const createBtn = document.createElement("button");
-        createBtn.textContent = "+";
-        createBtn.className = "slot-btn play-btn"; // Use play-btn style (Green) or maybe Neutral?
-        // Let's make it look distinct or just standard Create
-        createBtn.style.width = "100%"; // Or same small size? 
-        // User said "Consistent small size" for Exists. 
-        // For Empty, "Black Silhouette + [+] Button". 
-        // Let's keep consistency. A small [+] button in the corner looks neat.
-        // But maybe a bit wider for clear action?
-        // Let's stick to the styling class. 
-        createBtn.onclick = (e) => {
-            e.stopPropagation();
-            openCreatorModal();
-        };
-        btnRow.appendChild(createBtn);
+        slot.classList.add("empty");
+        // Empty Slot Left Side: "New Character" Text?
+        // User didn't specify text for Empty Left, but standard practice.
+        const info = document.createElement("div");
+        info.className = "empty-info";
+        info.innerHTML = "새로운<br>캐릭터";
+        leftCol.appendChild(info);
+    }
+    slot.appendChild(leftCol);
 
-        // Make the whole slot clickable for creation too?
-        slot.onclick = () => openCreatorModal();
+    // --- Right Half (50%) : Portrait ---
+    const rightCol = document.createElement("div");
+    rightCol.className = "slot-right";
+
+    const previewBox = document.createElement("div");
+    previewBox.className = "char-preview-box";
+
+    const preview = document.createElement("div");
+    preview.className = "char-preview";
+
+    if (charData) {
+        preview.textContent = "🧙‍♂️";
+        preview.style.filter = "none";
+
+        // Name Overlay at bottom
+        const nameOverlay = document.createElement("div");
+        nameOverlay.className = "char-name-overlay";
+        nameOverlay.textContent = charData.name;
+        previewBox.appendChild(nameOverlay);
+
+    } else {
+        preview.textContent = "👤";
+        preview.style.filter = "brightness(0) grayscale(100%)";
+        preview.style.opacity = "0.7";
+
+        // Create Button Overlay (+)
+        const createOverlay = document.createElement("div");
+        createOverlay.className = "create-overlay";
+        createOverlay.textContent = "+";
+        previewBox.appendChild(createOverlay);
     }
 
-    rightCol.appendChild(btnRow);
+    previewBox.appendChild(preview);
+    rightCol.appendChild(previewBox);
     slot.appendChild(rightCol);
 
     return slot;

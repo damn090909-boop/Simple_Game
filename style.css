@@ -246,57 +246,107 @@ body {
 
 /* --- Slot Internals --- */
 /* --- Slot Internals --- */
+/* Selected State */
+.slot.selected {
+    border-color: #00FF00 !important;
+    /* Green Border */
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
 .slot-left {
     flex: 0 0 50%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border-right: 1px solid #555;
-    /* Keep separator? User didn't say remove, but 50/50 split implies it might be nice. */
-    box-sizing: border-box;
-    /* Ensure padding doesn't break 50% */
     padding: 10px;
-    /* Add some padding so box doesn't touch edge strictly, or remove? "Fit to right" -> Maybe flush? Let's use padding to keep it nice inside the 50% area. */
-}
-
-.char-preview-box {
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.4);
-    /* border: 2px solid #777; Removed */
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-.char-preview {
-    font-size: 100px;
-    /* Increased from 40px to fill the 170px box */
-    /* No margin needed if centered in box */
-    line-height: 1;
-    /* Reset line-height to avoid vertical offset */
+    box-sizing: border-box;
+    border-right: 1px solid #555;
 }
 
 .slot-right {
     flex: 0 0 50%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    /* Info top, buttons bottom */
-    padding-left: 10px;
+    /* Just to hold box */
+    padding: 10px;
     box-sizing: border-box;
-    text-align: left;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Action Buttons Container (Left) */
+.slot-action-buttons {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.slot-btn.full-width {
+    width: 100%;
+    flex-grow: 1;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+}
+
+.empty-info {
+    color: #888;
+    text-align: center;
+    font-size: 18px;
+}
+
+/* Portrait Box (Right) */
+.char-preview-box {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+    position: relative;
+    /* For Overlay */
+}
+
+.char-preview {
+    font-size: 100px;
+    line-height: 1;
+    z-index: 1;
+}
+
+/* Create Overlay (+) */
+.create-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 80px;
+    color: rgba(0, 255, 0, 0.8);
+    font-weight: bold;
+    z-index: 2;
+    text-shadow: 0 0 10px black;
+    pointer-events: none;
+    /* Click goes to slot */
+}
+
+.char-name-overlay {
+    position: absolute;
+    bottom: 5px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 14px;
+    text-shadow: 1px 1px 2px black;
+    z-index: 2;
 }
 
 .slot-buttons {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-    /* Aligned Right-Bottom */
-    margin-top: auto;
+    /* Legacy clear - keep hidden or remove usages */
+    display: none;
 }
 
 .slot-btn {
