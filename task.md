@@ -1,233 +1,125 @@
-# Family Town Development Task List
+# Family Town 개발 가이드라인
 
-## Phase 1: Environment & Foundation
-- [x] **Verify Game Launch**
-    - [x] Confirm assets load without errors.
-    - [x] Note: Visual verification limited by tool rate limits; verified via code inspection (curl).
-- [x] **Project Setup**
-    - [x] Create directory structure (`src/`, `assets/`, `lib/`)
-    - [x] Create `index.html` with iOS PWA Meta tags & Viewport settings
-    - [x] Create `style.css` with strict touch/overscroll control & UI styles
-    - [x] Create `src/config.js` (Firebase setup)
-    - [x] **GitHub Sync**: Force pushed to `damn090909-boop/Simple_Game`
-- [x] **Asset Generation (Placeholder/Basic)**
-    - [x] Generate/Place 48px `tile_grass.png`, `tile_wall.png`
-    - [x] Generate/Place Skeletal parts (`body`, `head`, `arm`, `leg` - Grayscale)
-    - [x] Generate/Place UI icons (Implemented via CSS/Emoji for MVP)
+## 1. 프로젝트 개요
+**대상 플랫폼:** iOS/iPadOS Chrome 브라우저 (PWA 독립 실행)
+**핵심 컨셉:** 4인 가족 멀티플레이어 게임 (RPG + 시뮬레이션)
+**기술 스택:** 
+- **프론트엔드:** PixiJS v7+ (렌더링), Firebase v9 모듈형 (인증/DB)
+- **스타일:** 48px 그리드 타일, 골격(Cutout) 애니메이션, 픽셀 아트 (Nearest Scale)
 
-## Phase 2: Core Engine & Authentication
-- [x] **Resource Loader (`src/loader.js`)**
-    - [x] Implement PIXI.Assets preloader
-    - [x] Create Loading UI
-- [x] **Authentication (`src/auth.js`)**
-    - [x] Logic: Real-time PIN validation against DB (Connect button)
-    - [x] UI: 4-Box Split Input (Intro & Popup)
-    - [x] Feature: Creation Popup with Double-Check Logic
-    - [x] AudioContext resume trigger on interactions
-- [x] **Lobby System (`src/lobby.js`)**
-    - [x] Layout: Vertical Stacking (Portrait Mode)
-    - [x] Slot UI: Split Left(Portrait/Btns) & Right(Info) -> **Refined**: Portrait(Left), Info(Right), Buttons(Bottom)
-    - [x] Character Customizer Modal (Body/Hair/Color/Face)
-        - [ ] **Layout**: Top/Bottom split (50/50)
-            - **Top Half**: Full character preview image (live update based on selections)
-            - **Bottom Half**: Customization interface
-        - [ ] **Customization Tabs** (Swipeable horizontal navigation):
-            - Body (몸)
-            - Body Color (바디 컬러)
-            - Hair Style (헤어스타일)
-            - Hair Color (헤어 컬러)
-            - Eye Shape (눈 모양)
-            - Nose Shape (코 모양)
-            - Mouth Shape (입 모양)
-        - [ ] **Sample Selection**: When tab is selected, display sample images in horizontal scrollable boxes
-        - [ ] **Swipe Navigation**: Implement touch swipe for both tabs and sample images
-    - [x] Save/Load logic to Firebase `users/{uid}/characters`
+## 2. 기술적 제약 사항 및 iOS 최적화
+1.  **렌더링:** `PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST` (필수).
+2.  **PWA/터치:** 
+    - `overscroll-behavior`, `touch-action: none` 엄격 제어.
+    - `user-select: none`으로 텍스트 선택/확대경 방지.
+    - `apple-mobile-web-app-capable` 메타 태그.
+3.  **오디오:** `AudioContext`는 첫 번째 사용자 상호작용(PIN 키패드 터치)에서 재개되어야 함.
+4.  **기기 화면비:** 16:9 가로 비율 (데스크톱에서 시뮬레이션, 모바일에서 네이티브).
 
-## Phase 3: In-Game Engine & Multiplayer
-- [x] **Game Loop & Rendering (`src/engine.js`)**
-    - [x] Initialize PixiJS Application (Nearest Scale)
-    - [x] Implement skeletal assembly from JSON data (Basic Sprite for now, will upgrade)
-    - [x] **Crucial:** Z-Index sorting by Y-coordinate (Ticker loop)
-- [x] **Camera System (`src/camera.js`)**
-    - [x] Implement Zoom Toggle (48px <-> 64px)
-    - [x] Ensure Local Player Centering logic
-- [x] **Input & Movement (`src/input.js`, `src/pathfinder.js`)**
-    - [x] Tap-to-Move logic
-    - [x] A* Pathfinding implementation (Block `1` detection)
-    - [x] Movement smoothing (Lerp) & Directional mirroring
-- [x] **Network Sync (`src/network.js`)**
-    - [x] Firebase Realtime DB listener setup
-    - [x] Position throttling (Local) & Interpolation (Remote)
-    - [x] Presence system (onDisconnect)
-
-## Phase 4: Gameplay Expansion (Housing & Portal)
-- [x] **Housing System (`src/housing.js`)**
-    - [x] Ghost Building rendering (3x3)
-    - [x] Placement validation & Collision Grid update
-- [x] **Portal & Interior (`src/portal.js`, `src/interior.js`)**
-    - [x] Interior data structure & rendering filtering
-    - [x] Transition effects (Fade In/Out)
-    - [ ] Furniture placement logic (Skeleton Only for now)
-
-## Phase 5: Economy & Social
-- [x] **Chat System (`src/ui.js`)**
-    - [x] Hidden Input Bar logic (Slide-up)
-    - [x] Chat Bubble rendering & auto-destroy
-- [x] **Economy (`src/shop.js`)**
-    - [x] Shop UI Modal
-    - [x] Daily dynamic price logic (Seeded random)
-- [x] **P2P Trade (`src/trade.js`)**
-    - [x] Interaction Bubble (via Debug/Confirm for MVP)
-    - [x] Trade Window UI & Transaction logic
-
-## Phase 6: RPG & Environment
-- [x] **RPG Core (`src/rpg_core.js`, `src/monster.js`)**
-    - [x] Stats data sync (HP, XP, Level)
-    - [x] Monster AI (Idle/Chase/Attack) & Death logic (Basic Spawn/Render)
-- [x] **Environment (`src/environment.js`)**
-    - [x] Resource gathering (Shake anim, Item drop) - *Prioritized Monsters first*
-    - [x] Respawn timer logic
-- [x] **Housing Rental (`src/housing_rental.js`)**
-    - [x] Inn system logic - *Integrated into general Housing permission logic*
-
-## Phase 7: Polish & Deploy
-- [x] Final Code Review against Project.txt
-    - Verified `style.css` (PWA/Touch)
-    - Verified `engine.js` (Scale Mode, Z-Sort)
-    - Verified `auth.js` (Audio Context)
-- [x] iOS PWA Verification (Overscroll check)
-    - Confirmed `overscroll-behavior: none` in CSS.
-- [x] **Hotfix**: Implemented Auto-Registration for new PINs.
-- [x] **Hotfix**: Fixed `config.js` module export error.
-- [x] **Verification**: Verified core logic via Deployed URL (GitHub Pages).
-    - Confirmed 'Cancel' button logic in local code (Deployment was outdated).
-
-
-
-
-
-# Family Town Development Guidelines
-
-## 1. Project Overview
-**Target Platform:** iOS/iPadOS Chrome Browser (PWA Standalone)
-**Core Concept:** 4-Player Family Multiplayer Game (RPG + Sim)
-**Tech Stack:** 
-- **Frontend:** PixiJS v7+ (Render), Firebase v9 Modular (Auth/DB)
-- **Style:** 48px Grid Tile, Skeletal (Cutout) Animation, Pixel Art (Nearest Scale)
-
-## 2. Technical Constraints & iOS Optimization
-1.  **Rendering:** `PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST` (Mandatory).
-2.  **PWA/Touch:** 
-    - Strict control of `overscroll-behavior`, `touch-action: none`.
-    - `user-select: none` to prevent text selection/magnifiers.
-    - Meta tags for `apple-mobile-web-app-capable`.
-3.  **Audio:** `AudioContext` must be resumed on the very first user interaction (PIN Keypad touch).
-4.  **Device Aspect:** 16:9 Landscape Ratio (simulated on desktop, native on mobile).
-
-## 3. Database Schema (Firebase Realtime DB)
-| Path | Structure & Description |
+## 3. 데이터베이스 스키마 (Firebase Realtime DB)
+| 경로 | 구조 및 설명 |
 | :--- | :--- |
 | `users/{userID}` | `{ pin: "1234", avatar: {...} }` |
-| `users/{userID}/characters` | List of created characters (Max 3). |
-| `users/{userID}/currentMap` | Current location ID (default: `"world"`). |
-| `players/{userID}` | Ephemeral game state (x, y, anim, direction). |
-| `players/{userID}/stats` | RPG Stats: `{ level, xp, hp, max_hp, str... }`. |
-| `players/{userID}/inventory` | Personal items. |
-| `players/{userID}/wallet` | Currency: `{ gold: 1000 }`. |
-| `world/buildings/{buildID}` | Exterior buildings: `{ type, x, y, owner, interiorID }`. |
-| `world/drops` | Shared field items (FIFO pickup). |
-| `interiors/{interiorID}/items` | Furniture placement inside houses. |
-| `trades/{sessionID}` | P2P Trade session data. |
+| `users/{userID}/characters` | 생성된 캐릭터 목록 (최대 3개). |
+| `users/{userID}/currentMap` | 현재 위치 ID (기본값: `"world"`). |
+| `players/{userID}` | 임시 게임 상태 (x, y, anim, direction). |
+| `players/{userID}/stats` | RPG 스탯: `{ level, xp, hp, max_hp, str... }`. |
+| `players/{userID}/inventory` | 개인 아이템. |
+| `players/{userID}/wallet` | 화폐: `{ gold: 1000 }`. |
+| `world/buildings/{buildID}` | 외부 건물: `{ type, x, y, owner, interiorID }`. |
+| `world/drops` | 공유 필드 아이템 (FIFO 픽업). |
+| `interiors/{interiorID}/items` | 집 내부 가구 배치. |
+| `trades/{sessionID}` | P2P 거래 세션 데이터. |
 
-## 4. Module Specifications
+## 4. 모듈 사양
 
-### A. Authentication System (`src/auth.js`)
-- **UI (Intro):** 4 separate square input boxes (centered). Below: "Connect" button (Active ONLY if PIN is valid). Below: "Create Auth Key" text link.
-- **UI (Creation Popup):** 4 input boxes (New PIN) + 4 input boxes (Confirm PIN). "Create" button activates only if both match.
-- **Logic:** Real-time PIN validation against DB to enable Connect button. Auto-focus next box on input.
-- **Trigger:** First interaction resumes AudioContext.
+### A. 인증 시스템 (`src/auth.js`)
+- **UI (인트로):** 4개의 분리된 정사각형 입력 박스 (중앙 정렬). 아래: "접속" 버튼 (PIN이 유효할 때만 활성화). 아래: "Auth Key 생성" 텍스트 링크.
+- **UI (생성 팝업):** 4개 입력 박스 (새 PIN) + 4개 입력 박스 (PIN 확인). "생성" 버튼은 둘이 일치할 때만 활성화.
+- **로직:** DB에 대한 실시간 PIN 검증으로 접속 버튼 활성화. 입력 시 다음 박스로 자동 포커스.
+- **트리거:** 첫 상호작용에서 AudioContext 재개.
 
-### B. Lobby & Customization (`src/lobby.js`)
-- **Slots:** 3 Character Cards.
-    - *Exists:* 
-        - Layout: 50% Left (Portrait), 50% Right (Info + Buttons).
-        - Right Column: Name/Info at top, Delete/Connect buttons at bottom.
-        - Buttons: Consistent small size, aligned right-bottom.
-    - *Empty:* Black Silhouette + [+] Button.
-- **Character Creator:** 
-    - **Parts:** Body, Hair (Bone toggle), Face (Sprite toggle).
-    - **Color:** Tint application (Requires Grayscale/White source assets).
-    - **Save:** Stores JSON structure to `users/{uid}/characters`.
+### B. 로비 및 커스터마이징 (`src/lobby.js`)
+- **슬롯:** 3개의 캐릭터 카드.
+    - *존재:* 
+        - 레이아웃: 50% 왼쪽 (초상화), 50% 오른쪽 (정보 + 버튼).
+        - 오른쪽 열: 상단에 이름/정보, 하단에 삭제/접속 버튼.
+        - 버튼: 일관된 작은 크기, 오른쪽 하단 정렬.
+    - *빈 슬롯:* 검은 실루엣 + [+] 버튼.
+- **캐릭터 생성기:** 
+    - **파츠:** 몸, 머리 (뼈 토글), 얼굴 (스프라이트 토글).
+    - **색상:** 틴트 적용 (그레이스케일/흰색 소스 에셋 필요).
+    - **저장:** JSON 구조를 `users/{uid}/characters`에 저장.
 
-### C. Game Engine Core (`src/engine.js`, `src/camera.js`)
-- **Viewport:** Mobile Fullscreen.
-- **Z-Sorting:** **Critical.** Re-sort `WorldContainer` children by Y-coordinate every frame to verify depth.
-- **Skeletal Renderer:** Procedural animation (walking) by rotating Container bones code-side.
-- **Camera/Zoom:** 
-    - Toggle Button `[ 🔍 ]`: Switch between **48px (1.0x)** and **64px (1.33x)**.
-    - **Centering:** Local player must ALWAYS be center-screen.
+### C. 게임 엔진 코어 (`src/engine.js`, `src/camera.js`)
+- **뷰포트:** 모바일 전체 화면.
+- **Z-정렬:** **중요.** 깊이를 확인하기 위해 매 프레임마다 Y 좌표로 `WorldContainer` 자식 재정렬.
+- **골격 렌더러:** 코드 측에서 Container 뼈를 회전하여 절차적 애니메이션 (걷기).
+- **카메라/줌:** 
+    - 토글 버튼 `[ 🔍 ]`: **48px (1.0x)**와 **64px (1.33x)** 사이 전환.
+    - **중앙 정렬:** 로컬 플레이어는 항상 화면 중앙에 있어야 함.
 
-### D. Input & Movement (`src/pathfinder.js`, `src/input.js`)
-- **Control:** Tap-to-move (Point & Click).
-- **Feedback:** Visual 'Target Marker' animation at touch point (0.5s).
-- **Logic:** 
-    1. Grid conversion -> Collision Check (`1` = Block).
-    2. **A* Pathfinding:** Calculate shortest path.
-    3. **Smoothing:** Lerp movement between tiles. Mirror sprite based on direction.
+### D. 입력 및 이동 (`src/pathfinder.js`, `src/input.js`)
+- **제어:** 탭하여 이동 (포인트 앤 클릭).
+- **피드백:** 터치 지점에 시각적 '타겟 마커' 애니메이션 (0.5초).
+- **로직:** 
+    1. 그리드 변환 -> 충돌 체크 (`1` = 차단).
+    2. **A* 경로 찾기:** 최단 경로 계산.
+    3. **스무딩:** 타일 간 Lerp 이동. 방향에 따라 스프라이트 미러링.
 
-### E. Network & Chat (`src/network.js`, `src/ui.js`)
-- **Sync:** 
-    - Local: 100ms Throttle.
-    - Remote: Linear Interpolation (Lerp) for smooth lag compensation.
-- **Off-line:** Handle `onDisconnect` to remove player presence.
-- **Chat:** 
-    - Input: Hidden by default. Toggle `[ 💬 ]` slides up keyboard + input bar. 
-    - **No-Gap:** Ensure Viewport adjustment so input bar sits on top of keyboard without white space.
-    - **Display:** Bubble above head (Rounded Rect), auto-destroy after 5s.
+### E. 네트워크 및 채팅 (`src/network.js`, `src/ui.js`)
+- **동기화:** 
+    - 로컬: 100ms 쓰로틀.
+    - 원격: 부드러운 랙 보상을 위한 선형 보간(Lerp).
+- **오프라인:** `onDisconnect`를 처리하여 플레이어 존재 제거.
+- **채팅:** 
+    - 입력: 기본적으로 숨김. `[ 💬 ]` 토글로 키보드 + 입력 바 슬라이드 업. 
+    - **간격 없음:** 입력 바가 흰 공간 없이 키보드 위에 위치하도록 뷰포트 조정 보장.
+    - **표시:** 머리 위 말풍선 (둥근 사각형), 5초 후 자동 소멸.
 
-### F. Housing & Interiors (`src/housing.js`, `src/interior.js`, `src/portal.js`)
-- **Ghost Building:** 3x3 semitransparent visual following cursor. Red tint if invalid placement.
-- **Placement:** Updates specific 3x3 grid area to `Collision(1)`.
-- **Portal:** 
-    - **Enter:** Tap 'Door' tile -> Fade Out -> Switch `currentMap` -> Teleport to interior.
-    - **Exit:** Tap 'Mat' tile -> Fade Out -> Switch `world` -> Teleport to door front.
-- **Filtering:** Only render entities sharing the same `currentMap` ID.
-- **Interior:** 10x10 fixed room. Furniture placement allowed (except door frontage).
+### F. 주택 및 인테리어 (`src/housing.js`, `src/interior.js`, `src/portal.js`)
+- **고스트 건물:** 커서를 따라가는 3x3 반투명 시각. 배치가 유효하지 않으면 빨간색 틴트.
+- **배치:** 특정 3x3 그리드 영역을 `Collision(1)`로 업데이트.
+- **포털:** 
+    - **입장:** '문' 타일 탭 -> 페이드 아웃 -> `currentMap` 전환 -> 인테리어로 텔레포트.
+    - **퇴장:** '매트' 타일 탭 -> 페이드 아웃 -> `world` 전환 -> 문 앞으로 텔레포트.
+- **필터링:** 동일한 `currentMap` ID를 공유하는 엔티티만 렌더링.
+- **인테리어:** 10x10 고정 방. 가구 배치 허용 (문 앞 제외).
 
-### G. Economy & Trade (`src/shop.js`, `src/trade.js`)
-- **Shop:** Fixed map location (Town Center). Modal Popup.
-    - **Dynamic Price:** Daily fluctuation based on Seed (`DateString`). Range: 0.8 ~ 1.3x.
-- **P2P Trade:**
-    - **Interaction:** Tap User -> Move to adjacent tile -> Show `[ 🤝 Trade ]` Bubble.
-    - **Flow:** Request -> Window Open -> Offer -> Lock -> Confirm -> Transaction.
+### G. 경제 및 거래 (`src/shop.js`, `src/trade.js`)
+- **상점:** 고정 맵 위치 (타운 센터). 모달 팝업.
+    - **동적 가격:** 시드(`DateString`) 기반 일일 변동. 범위: 0.8 ~ 1.3배.
+- **P2P 거래:**
+    - **상호작용:** 사용자 탭 -> 인접 타일로 이동 -> `[ 🤝 거래 ]` 말풍선 표시.
+    - **흐름:** 요청 -> 창 열기 -> 제안 -> 잠금 -> 확인 -> 거래.
 
-### H. RPG & Combat (`src/rpg_core.js`, `src/monster.js`)
-- **Stats:** Level, XP, HP/MaxHP, Str/Vit/Int/Agi.
-- **Progression:** Level Up -> +3 Free Points.
-- **Monsters:** 
-    - **AI:** Idle (Random Walk) -> Detect (3 tiles) -> Chase -> Attack (1 tile).
-    - **Combat:** Simple HP deduction.
-- **Death:** `HP <= 0` -> Faint State -> Screen Fade -> Respawn at "Well" (Town Center) after 3s.
+### H. RPG 및 전투 (`src/rpg_core.js`, `src/monster.js`)
+- **스탯:** 레벨, XP, HP/MaxHP, Str/Vit/Int/Agi.
+- **진행:** 레벨 업 -> +3 자유 포인트.
+- **몬스터:** 
+    - **AI:** 대기 (랜덤 워크) -> 감지 (3타일) -> 추격 -> 공격 (1타일).
+    - **전투:** 단순 HP 감소.
+- **사망:** `HP <= 0` -> 기절 상태 -> 화면 페이드 -> 3초 후 "우물" (타운 센터)에서 리스폰.
 
-### I. Environment & Resources (`src/environment.js`)
-- **Gathering:** Tap Resource (Tree/Rock) -> Shake Anim -> Drop Item.
-- **Drops:** Parabola Tween animation (Up -> Down). Shadow casting.
-- **Looting:** Tap Drop -> Fly-to-bag animation (Bezier) -> Inventory `+1`.
-- **Regeneration:** 
-    - Depleted objects set `active: false` (Invisible/No-collision).
-    - Timer check (e.g., Tree 5min) -> Restore to `active: true`.
+### I. 환경 및 자원 (`src/environment.js`)
+- **채집:** 자원 탭 (나무/바위) -> 흔들림 애니메이션 -> 아이템 드롭.
+- **드롭:** 포물선 트윈 애니메이션 (위 -> 아래). 그림자 투사.
+- **루팅:** 드롭 탭 -> 가방으로 날아가는 애니메이션 (베지어) -> 인벤토리 `+1`.
+- **재생:** 
+    - 고갈된 객체는 `active: false` 설정 (보이지 않음/충돌 없음).
+    - 타이머 체크 (예: 나무 5분) -> `active: true`로 복원.
 
-### J. Rental System (`src/housing_rental.js`)
-- **Inn:** Rental room for players without houses.
-- **Logic:** Pay gold -> Set spawn point to Inn Room.
+### J. 임대 시스템 (`src/housing_rental.js`)
+- **여관:** 집이 없는 플레이어를 위한 임대 방.
+- **로직:** 골드 지불 -> 여관 방으로 스폰 포인트 설정.
 
-## 5. Asset Conventions
-- **Path:** `assets/`
-- **Naming:** 
-    - Parts: `body_basic.png`, `head_{n}.png`, `arm_basic.png`
-    - Tiles: `tile_grass.png`, `tile_wall.png`
-    - Objects: `building_house_01.png` (3x3), `furniture_bed.png`
-- **Tint Rule:** All tintable sprites (Skin, Hair) **MUST be Grayscale or White**.
+## 5. 에셋 규칙
+- **경로:** `assets/`
+- **이름 지정:** 
+    - 파츠: `body_basic.png`, `head_{n}.png`, `arm_basic.png`
+    - 타일: `tile_grass.png`, `tile_wall.png`
+    - 객체: `building_house_01.png` (3x3), `furniture_bed.png`
+- **틴트 규칙:** 모든 틴트 가능 스프라이트 (피부, 머리)는 **반드시 그레이스케일 또는 흰색**이어야 함.
 
-## 6. Test Credentials
-- **Test PIN:** `0000`
+## 6. 테스트 자격 증명
+- **테스트 PIN:** `0000`
