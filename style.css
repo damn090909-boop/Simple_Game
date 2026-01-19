@@ -24,21 +24,32 @@ body {
     /* Lock viewport */
 }
 
-/* PixiJS Canvas */
-#game-container {
-    width: 100vw;
+/* PixiJS Canvas & UI Container - Fixed 9:16 Aspect Ratio */
+#game-container,
+#ui-layer {
+    width: 100vh;
+    /* Base height */
     height: 100vh;
+    max-width: 56.25vh;
+    /* 100 * (9/16) = 56.25 -> 9:16 Ratio */
+    width: 100%;
+    /* Fallback */
+    /* Center functionality */
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    aspect-ratio: 9 / 16;
+}
+
+#game-container {
     z-index: 1;
+    background: #000;
+    /* Letterbox fill */
 }
 
 /* UI Layer Overlay */
 #ui-layer {
-    position: absolute;
-    width: 100%;
-    height: 100%;
     z-index: 10;
     pointer-events: none;
     /* Let clicks pass to canvas if not on UI button */
