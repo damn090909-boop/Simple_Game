@@ -59,16 +59,38 @@ export function initAuth(onLoginSuccess) {
 function setupPinInputs(inputs, onCompleteOrChange) {
     inputs.forEach((input, index) => {
         input.addEventListener("input", (e) => {
-            const val = e.target.value;
+            let val = e.target.value;
 
-            // Allow only numbers
+            // Enforce numeric only
             if (!/^\d*$/.test(val)) {
-                e.target.value = "";
-                return;
+                input.value = val.replace(/\D/g, "");
+                val = input.value;
             }
 
-            // Move to next
-            if (val.length === 1) {
+            // Handle Paste or Auto-fill (length > 1)
+            if (val.length > 1) {
+                const chars = val.split("");
+                input.value = chars[0]; // Keep first char here
+
+                // Distribute remaining chars to subsequent inputs
+                let nextIdx = index + 1;
+                for (let i = 1; i < chars.length; i++) {
+                    if (nextIdx < inputs.length) {
+                        inputs[nextIdx].value = chars[i];
+                        nextIdx++;
+                    }
+                }
+
+                // Focus the box after the last filled one
+                if (nextIdx < inputs.length) {
+                    inputs[nextIdx].focus();
+                } else {
+                    inputs[inputs.length - 1].focus();
+                    inputs[inputs.length - 1].blur(); // Completed
+                }
+            }
+            // Normal Typing (Single Char)
+            else if (val.length === 1) {
                 if (index < inputs.length - 1) {
                     inputs[index + 1].focus();
                 } else {
