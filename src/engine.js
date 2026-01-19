@@ -22,7 +22,7 @@ export let app;
 export let worldContainer;
 export let mapData = [];
 export const TILE_SIZE = 48;
-let backgroundLayer;
+export let backgroundLayer;
 export let entityLayer;
 
 // Local Player State
