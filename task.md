@@ -17,9 +17,10 @@
     - [x] Implement PIXI.Assets preloader
     - [x] Create Loading UI
 - [x] **Authentication (`src/auth.js`)**
-    - [x] Implement PIN Keypad UI (No buttons, strictly 0-9 grid)
-    - [x] Logic: Auto-login on 4-digit input
-    - [x] AudioContext resume trigger on keypad touch
+    - [x] Logic: Real-time PIN validation against DB (Connect button)
+    - [x] UI: 4-Box Split Input (Intro & Popup)
+    - [x] Feature: Creation Popup with Double-Check Logic
+    - [x] AudioContext resume trigger on interactions
 - [x] **Lobby System (`src/lobby.js`)**
     - [x] Character Slot UI (Cards)
     - [x] Character Customizer Modal (Body/Hair/Color/Face)
@@ -73,5 +74,11 @@
     - [x] Inn system logic - *Integrated into general Housing permission logic*
 
 ## Phase 7: Polish & Deploy
-- [ ] Final Code Review against Project.txt
-- [ ] iOS PWA Verification (Overscroll check)
+- [x] Final Code Review against Project.txt
+    - Verified `style.css` (PWA/Touch)
+    - Verified `engine.js` (Scale Mode, Z-Sort)
+    - Verified `auth.js` (Audio Context)
+- [x] iOS PWA Verification (Overscroll check)
+    - Confirmed `overscroll-behavior: none` in CSS.
+- [x] **Hotfix**: Implemented Auto-Registration for new PINs.
+- [x] **Hotfix**: Fixed `config.js` module export error.

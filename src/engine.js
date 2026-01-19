@@ -1,5 +1,6 @@
 import * as PIXI from "https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.mjs";
 import { Assets } from "./loader.js";
+import { Character } from "./character.js";
 import { initCamera } from "./camera.js";
 import { initInput } from "./input.js";
 import { initNetwork, updateMyPosition } from "./network.js";
@@ -82,20 +83,14 @@ function generateMap(cols, rows) {
 }
 
 function spawnPlayer(charData, user) {
-    // Basic Sprite for MVP (Placeholder for Skeletal)
-    mySprite = new PIXI.Sprite(Assets.textures.body_basic);
-    mySprite.anchor.set(0.5, 1.0);
+    // Skeletal Character
+    mySprite = new Character(charData);
+
+    // Container Logic for Character
+    // We already adjust y in animate(), but need base position
     mySprite.x = 5 * TILE_SIZE + 24;
     mySprite.y = 5 * TILE_SIZE + 48;
     mySprite.zIndex = mySprite.y;
-
-    // Tint local player
-    if (user.skinColor) {
-        // Simple hex string to int
-        if (user.skinColor.startsWith("#")) {
-            mySprite.tint = parseInt(user.skinColor.replace("#", ""), 16);
-        }
-    }
 
     entityLayer.addChild(mySprite);
 }
@@ -127,7 +122,6 @@ function gameLoop(delta) {
             // Arrived at node
             mySprite.x = target.x;
             mySprite.y = target.y;
-            movePath.shift(); // Remove node
             if (movePath.length === 0) isMoving = false;
         } else {
             // Move towards
@@ -137,6 +131,11 @@ function gameLoop(delta) {
 
         // Network Sync
         updateMyPosition(mySprite.x, mySprite.y);
+    }
+
+    // Animate Character
+    if (mySprite instanceof Character) {
+        mySprite.animate(delta, isMoving);
     }
 }
 

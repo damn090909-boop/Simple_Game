@@ -7,47 +7,97 @@ export let currentUser = null;
 // Audio Context (must resume on first touch)
 let audioContext = null;
 
+// DOM Elements
+let loginInputs, loginBtn, createLink;
+let popupOverlay, createInputs, confirmInputs, finalCreateBtn, cancelCreateBtn;
+
 export function initAuth(onLoginSuccess) {
-    const pinDisplay = document.getElementById("pin-display");
-    const keys = document.querySelectorAll(".key");
-    const authScreen = document.getElementById("auth-screen");
+    // Selectors
+    const screen = document.getElementById("auth-screen");
+    loginInputs = Array.from(document.querySelectorAll("#login-pin-wrapper input"));
+    loginBtn = document.getElementById("login-btn");
+    createLink = document.getElementById("create-link");
+
+    popupOverlay = document.getElementById("auth-popup-overlay");
+    createInputs = Array.from(document.querySelectorAll("#create-pin-wrapper input"));
+    confirmInputs = Array.from(document.querySelectorAll("#confirm-pin-wrapper input"));
+    finalCreateBtn = document.getElementById("final-create-btn");
+    cancelCreateBtn = document.getElementById("cancel-create-btn");
 
     // Initialize AudioContext on first interaction
     document.body.addEventListener('touchstart', resumeAudio, { once: true });
     document.body.addEventListener('click', resumeAudio, { once: true });
 
-    keys.forEach(key => {
-        key.addEventListener("click", () => {
-            const num = key.dataset.num;
+    // --- Login Flow ---
+    setupPinInputs(loginInputs, () => validateLoginPin());
 
-            // Handle Backspace
-            if (key.classList.contains("backspace")) {
-                currentPin = currentPin.slice(0, -1);
-                updateDisplay(pinDisplay);
+    loginBtn.addEventListener("click", () => {
+        const pin = getPinFromInputs(loginInputs);
+        attemptLogin(pin, screen, onLoginSuccess);
+    });
+
+    createLink.addEventListener("click", () => {
+        openCreationPopup();
+    });
+
+    // --- Creation Flow ---
+    setupPinInputs(createInputs, () => validateCreation());
+    setupPinInputs(confirmInputs, () => validateCreation());
+
+    cancelCreateBtn.addEventListener("click", () => {
+        popupOverlay.classList.add("hidden");
+        resetInputs(createInputs);
+        resetInputs(confirmInputs);
+    });
+
+    finalCreateBtn.addEventListener("click", () => {
+        const pin = getPinFromInputs(createInputs);
+        createNewUser(pin, screen, onLoginSuccess);
+    });
+}
+
+function setupPinInputs(inputs, onCompleteOrChange) {
+    inputs.forEach((input, index) => {
+        input.addEventListener("input", (e) => {
+            const val = e.target.value;
+
+            // Allow only numbers
+            if (!/^\d*$/.test(val)) {
+                e.target.value = "";
                 return;
             }
 
-            // Ignote empty keys
-            if (key.classList.contains("empty")) return;
-
-            // Handle Number Input
-            if (currentPin.length < 4) {
-                currentPin += num;
-                updateDisplay(pinDisplay);
-
-                // Auto-submit on 4 digits
-                if (currentPin.length === 4) {
-                    attemptLogin(currentPin, authScreen, onLoginSuccess);
+            // Move to next
+            if (val.length === 1) {
+                if (index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                } else {
+                    input.blur(); // Hide keyboard on last digit
                 }
             }
+
+            onCompleteOrChange();
+        });
+
+        input.addEventListener("keydown", (e) => {
+            // Backspace moves to prev
+            if (e.key === "Backspace" && !e.target.value && index > 0) {
+                inputs[index - 1].focus();
+            }
+        });
+
+        input.addEventListener("focus", () => {
+            input.select();
         });
     });
 }
 
-function updateDisplay(el) {
-    // Show dots or numbers? UX says "• • • •" usually, but let's show dots for security
-    // The input is type="password" so setting value works
-    el.value = currentPin;
+function getPinFromInputs(inputs) {
+    return inputs.map(input => input.value).join("");
+}
+
+function resetInputs(inputs) {
+    inputs.forEach(input => input.value = "");
 }
 
 function resumeAudio() {
@@ -59,13 +109,33 @@ function resumeAudio() {
     }
 }
 
+// Check DB to enable "Connect" button
+async function validateLoginPin() {
+    const pin = getPinFromInputs(loginInputs);
+    if (pin.length !== 4) {
+        loginBtn.disabled = true;
+        return;
+    }
+
+    try {
+        const dbRef = ref(db, "users");
+        // Check if ANY user has this PIN
+        const snapshot = await get(dbRef);
+        let isValid = false;
+
+        if (snapshot.exists()) {
+            const users = snapshot.val();
+            isValid = Object.values(users).some(u => u.pin === pin);
+        }
+
+        loginBtn.disabled = !isValid;
+    } catch (e) {
+        console.error("Validation error", e);
+    }
+}
+
 async function attemptLogin(pin, authScreen, onSuccess) {
     console.log("Attempting login with PIN:", pin);
-
-    // In strict security, we shouldn't fetch all users.
-    // But for MVP/Family app, we fetch 'users' node and find match.
-    // Optimization: In real app, use query logic.
-
     try {
         const dbRef = ref(db);
         const snapshot = await get(child(dbRef, "users"));
@@ -86,28 +156,79 @@ async function attemptLogin(pin, authScreen, onSuccess) {
             if (foundUser) {
                 console.log("Login Success:", foundUser.name);
                 currentUser = { uid: userId, ...foundUser };
-
-                // Transition
-                authScreen.classList.remove("active");
-                authScreen.classList.add("hidden");
-
-                // Callback to Main App
-                onSuccess(currentUser);
+                proceedToGame(authScreen, onSuccess);
             } else {
-                alert("Wrong PIN!");
-                currentPin = "";
-                updateDisplay(document.getElementById("pin-display"));
+                loginBtn.disabled = true;
             }
-        } else {
-            // First time setup? Or empty DB.
-            // For MVP, we might need to seed a user manually or allow creation?
-            // Spec says "Search users node". If empty, can't login.
-            alert("No users found in Database.");
-            currentPin = "";
-            updateDisplay(document.getElementById("pin-display"));
         }
     } catch (error) {
         console.error("Login Error:", error);
         alert("Login failed: " + error.message);
     }
+}
+
+// --- Creation Logic ---
+function openCreationPopup() {
+    popupOverlay.classList.remove("hidden");
+    resetInputs(createInputs);
+    resetInputs(confirmInputs);
+    createInputs[0].focus();
+    finalCreateBtn.disabled = true;
+}
+
+function validateCreation() {
+    const p1 = getPinFromInputs(createInputs);
+    const p2 = getPinFromInputs(confirmInputs);
+
+    if (p1.length === 4 && p2.length === 4 && p1 === p2) {
+        finalCreateBtn.disabled = false;
+    } else {
+        finalCreateBtn.disabled = true;
+    }
+}
+
+async function createNewUser(pin, authScreen, onSuccess) {
+    // Check global uniqueness first
+    const dbRef = ref(db, "users");
+    const snapshot = await get(dbRef);
+    let exists = false;
+    if (snapshot.exists()) {
+        exists = Object.values(snapshot.val()).some(u => u.pin === pin);
+    }
+
+    if (exists) {
+        alert("This PIN is already in use.");
+        resetInputs(createInputs);
+        resetInputs(confirmInputs);
+        return;
+    }
+
+    const newUid = "user_" + Date.now();
+    const newUser = {
+        name: "FamilyMember_" + pin.slice(-2),
+        pin: pin,
+        characters: {}
+    };
+
+    try {
+        await set(ref(db, "users/" + newUid), newUser);
+        alert("Auth Key Created! You can now Connect.");
+
+        // Return to Intro
+        popupOverlay.classList.add("hidden");
+        resetInputs(createInputs);
+        resetInputs(confirmInputs);
+        resetInputs(loginInputs); // Keep it empty?
+        loginInputs[0].focus();
+
+    } catch (e) {
+        console.error("Creation failed", e);
+        alert("Failed to create user: " + e.message);
+    }
+}
+
+function proceedToGame(authScreen, onSuccess) {
+    authScreen.classList.remove("active");
+    authScreen.classList.add("hidden");
+    onSuccess(currentUser);
 }

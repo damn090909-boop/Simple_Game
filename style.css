@@ -9,14 +9,19 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-html, body {
+html,
+body {
     width: 100%;
     height: 100%;
-    overflow: hidden; /* Prevent scrolling */
+    overflow: hidden;
+    /* Prevent scrolling */
     background-color: #000;
-    touch-action: none; /* Disable browser handling of gestures */
-    overscroll-behavior: none; /* Disable bounce */
-    position: fixed; /* Lock viewport */
+    touch-action: none;
+    /* Disable browser handling of gestures */
+    overscroll-behavior: none;
+    /* Disable bounce */
+    position: fixed;
+    /* Lock viewport */
 }
 
 /* PixiJS Canvas */
@@ -35,7 +40,8 @@ html, body {
     width: 100%;
     height: 100%;
     z-index: 10;
-    pointer-events: none; /* Let clicks pass to canvas if not on UI button */
+    pointer-events: none;
+    /* Let clicks pass to canvas if not on UI button */
 }
 
 /* Screens */
@@ -47,8 +53,9 @@ html, body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    pointer-events: auto; /* Block clicks on active screens */
-    background: rgba(0,0,0,0.8);
+    pointer-events: auto;
+    /* Block clicks on active screens */
+    background: rgba(0, 0, 0, 0.8);
     transition: opacity 0.3s;
 }
 
@@ -65,54 +72,123 @@ html, body {
 }
 
 /* --- Auth / PIN UI --- */
-.pin-container {
+.auth-content {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 30px;
+}
+
+.pin-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.pin-box {
+    width: 60px;
+    height: 60px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    font-size: 32px;
+    text-align: center;
+    border-radius: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.pin-box:focus {
+    border-color: #4CAF50;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.main-btn {
+    padding: 15px 40px;
+    background: #2196F3;
+    border: none;
+    border-radius: 30px;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+    min-width: 200px;
+}
+
+.main-btn:disabled {
+    background: #555;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.main-btn:not(:disabled):active {
+    transform: scale(0.98);
+}
+
+.text-link {
+    color: #AAA;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.text-link:active {
+    color: white;
+}
+
+/* --- Creation Popup --- */
+#auth-popup-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    /* Darker overlay */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+
+.auth-popup {
+    background: #333;
+    padding: 30px;
+    border-radius: 20px;
+    border: 2px solid #555;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 90%;
+    max-width: 400px;
+}
+
+.auth-popup h3 {
+    color: white;
+    margin-bottom: 20px;
+}
+
+.auth-popup .label {
+    color: #CCC;
+    margin-bottom: 10px;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.action-row {
+    margin-top: 30px;
+    display: flex;
     gap: 20px;
 }
 
-#pin-display {
-    background: white;
-    border: none;
-    font-size: 32px;
-    letter-spacing: 12px;
-    text-align: center;
-    width: 200px;
-    padding: 10px;
-    border-radius: 10px;
-    pointer-events: none; /* Read only */
-}
-
-.keypad {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-}
-
-.key {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    border: none;
-    background: #333;
-    color: white;
-    font-size: 24px;
+.secondary-btn {
+    background: transparent;
+    border: 1px solid #777;
+    color: #AAA;
+    padding: 10px 20px;
+    border-radius: 20px;
     cursor: pointer;
-    touch-action: manipulation;
-}
-
-.key:active {
-    background: #555;
-    transform: scale(0.95);
-}
-
-.key.empty {
-    visibility: hidden;
-}
-
-.key.backspace {
-    background: #442222;
 }
 
 /* --- Lobby UI --- */
@@ -155,10 +231,12 @@ html, body {
 #game-hud {
     background: transparent;
     justify-content: space-between;
-    pointer-events: none; /* Allow play through */
+    pointer-events: none;
+    /* Allow play through */
 }
 
-.top-bar, .bottom-bar {
+.top-bar,
+.bottom-bar {
     width: 100%;
     display: flex;
     padding: 10px;
@@ -192,7 +270,7 @@ html, body {
 /* --- Hidden Chat Input --- */
 #chat-bar {
     position: absolute;
-    bottom: 0px; 
+    bottom: 0px;
     left: 0;
     width: 100%;
     background: #eee;
