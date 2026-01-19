@@ -202,31 +202,6 @@ function openCreatorModal() {
     modalContent.style.height = "80vh";
     // Remove display:flex from here - will be handled by CSS
 
-    // Close Button
-    const closeBtn = document.createElement("button");
-    closeBtn.type = "button";
-    closeBtn.className = "close-modal-btn";
-    closeBtn.innerHTML = "X";
-    closeBtn.style.position = "absolute";
-    closeBtn.style.top = "10px";
-    closeBtn.style.right = "10px";
-    closeBtn.style.background = "transparent";
-    closeBtn.style.border = "none";
-    closeBtn.style.color = "white";
-    closeBtn.style.fontSize = "24px";
-    closeBtn.style.fontWeight = "bold";
-    closeBtn.style.cursor = "pointer";
-    closeBtn.style.zIndex = "1000";
-    closeBtn.onclick = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        // Clear the modal content to reset state
-        modalContent.innerHTML = "";
-        // Hide the modal
-        modal.classList.add("hidden");
-    };
-    modalContent.appendChild(closeBtn);
-
     // Top Half: Preview
     const previewArea = document.createElement("div");
     previewArea.className = "creator-preview";
@@ -422,6 +397,41 @@ function openCreatorModal() {
 
     // Initial render
     updateTabUI();
+
+    // Close Button - ADD AT THE VERY END to ensure it's on top
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "close-modal-btn";
+    closeBtn.innerHTML = "X";
+    closeBtn.style.position = "absolute";
+    closeBtn.style.top = "10px";
+    closeBtn.style.right = "10px";
+    closeBtn.style.background = "transparent";
+    closeBtn.style.border = "none";
+    closeBtn.style.color = "white";
+    closeBtn.style.fontSize = "24px";
+    closeBtn.style.fontWeight = "bold";
+    closeBtn.style.cursor = "pointer";
+    closeBtn.style.zIndex = "9999"; // Very high z-index
+    closeBtn.style.pointerEvents = "auto"; // Ensure it's clickable
+
+    // Close handler function
+    const closeModal = (e) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        // Clear the modal content to reset state
+        modalContent.innerHTML = "";
+        // Hide the modal
+        modal.classList.add("hidden");
+    };
+
+    // Add both click and touch handlers
+    closeBtn.onclick = closeModal;
+    closeBtn.addEventListener("touchend", closeModal, { passive: false });
+
+    modalContent.appendChild(closeBtn);
 }
 
 async function createCharacter(charData) {
