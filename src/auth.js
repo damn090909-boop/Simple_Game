@@ -139,6 +139,20 @@ function validateLoginPin() {
 
 async function attemptLogin(pin, authScreen, onSuccess) {
     console.log("Attempting login with PIN:", pin);
+
+    // [TEST MODE] Bypass for 0000
+    if (pin === "0000") {
+        console.log("Test Mode Activated");
+        currentUser = {
+            uid: "test_user_0000",
+            name: "TEST_USER",
+            pin: "0000",
+            characters: {}
+        };
+        proceedToGame(authScreen, onSuccess);
+        return;
+    }
+
     try {
         const dbRef = ref(db);
         const snapshot = await get(child(dbRef, "users"));
