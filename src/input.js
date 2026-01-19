@@ -1,3 +1,4 @@
+import * as PIXI from "https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.mjs";
 import { app, worldContainer, TILE_SIZE, mapData } from "./engine.js";
 import { findPath } from "./pathfinder.js";
 import { updateMyPosition } from "./network.js"; // Will be created
