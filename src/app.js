@@ -26,7 +26,7 @@ async function startApp() {
             console.log("Character Selected:", characterData);
 
             // 4. Start Game
-            import("./engine.js").then(module => {
+            import("./engine.js?v=5").then(module => {
                 module.initGame(user, characterData);
 
                 // 5. Init Expansion

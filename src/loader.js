@@ -23,6 +23,9 @@ export async function initLoader() {
     // Initialize Assets system (Mandatory)
     await PIXI.Assets.init();
 
+    // Global Fallback (Fix for ReferenceError in modules)
+    window.PIXI = PIXI;
+
     // Check availability (Debug)
     console.log("PIXI.Assets availability:", !!PIXI.Assets);
 
