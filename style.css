@@ -273,8 +273,11 @@ body {
 }
 
 .char-preview {
-    font-size: 40px;
+    font-size: 100px;
+    /* Increased from 40px to fill the 170px box */
     /* No margin needed if centered in box */
+    line-height: 1;
+    /* Reset line-height to avoid vertical offset */
 }
 
 .slot-right {
