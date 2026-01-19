@@ -1,18 +1,49 @@
 import { db, ref, get, set, child, push, remove } from "./config.js";
-import { currentUser } from "./auth.js";
+import { currentUser as initialCurrentUser } from "./auth.js"; // Rename import to avoid conflict
 import { Assets } from "./loader.js";
 
 // Callbacks
 let onEnterGame = null;
+let currentUser = initialCurrentUser; // Make currentUser a mutable variable in this scope
 
-export function initLobby(enterGameCallback) {
-    onEnterGame = enterGameCallback;
+export async function initLobby(user) {
+    currentUser = user;
     const lobbyScreen = document.getElementById("lobby-screen");
     lobbyScreen.classList.remove("hidden");
     lobbyScreen.classList.add("active");
 
-    // Load characters
-    loadCharacters();
+    // Item 13: Create test character for PIN 0000 user
+    if (currentUser.pin === "0000") {
+        await ensureTestCharacter();
+    }
+
+    await loadCharacters();
+}
+
+// Item 13: Ensure test character exists for PIN 0000
+async function ensureTestCharacter() {
+    const dbRef = ref(db);
+    const charsRef = child(dbRef, `users/${currentUser.uid}/characters`);
+    const snapshot = await get(charsRef);
+
+    // If no characters exist, create a test character
+    if (!snapshot.exists()) {
+        const testChar = {
+            name: "Test Hero",
+            createdAt: Date.now(),
+            parts: {
+                body: "body_1",
+                bodyColor: "#ffe0bd",
+                head: "head_1",
+                hairColor: "#8b4513",
+                eyeShape: "1",
+                noseShape: "1",
+                mouthShape: "1"
+            }
+        };
+        await push(charsRef, testChar);
+        console.log("Test character created for PIN 0000");
+    }
 }
 
 async function loadCharacters() {
@@ -169,6 +200,16 @@ function createSlotElement(charData) {
 function openCreatorModal() {
     const modal = document.getElementById("creator-modal");
     modal.classList.remove("hidden");
+
+    // Click outside to close (Item 14)
+    modal.onclick = (e) => {
+        // Only close if clicking the modal background, not the content
+        if (e.target === modal) {
+            modal.classList.add("hidden");
+            const modalContent = modal.querySelector(".modal-content");
+            if (modalContent) modalContent.innerHTML = "";
+        }
+    };
 
     // Character state
     const characterState = {
